@@ -3,7 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_
 from marshmallow import ValidationError
-from models import db, User, Profile, Article, Prediction, Reaction, user_follows
+from models import db, User, Profile, Article, Prediction, Reaction, UserFollow
 from schemas import user_schema, users_schema, profile_schema
 from auth_utils import role_required
 

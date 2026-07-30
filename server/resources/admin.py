@@ -2,13 +2,12 @@ from flask_restful import Resource
 from flask import make_response
 from datetime import datetime
 from auth_utils import role_required
-from models import Article
+from models import db, Article
 from schemas import article_schema
 
 class AdminReportsResource(Resource):
     @role_required(["admin"])
     def get(self):
-        from models import db
         article_count = Article.query.count()
         published_count = Article.query.filter(Article.published_at.isnot(None)).count()
         unpublished_count = article_count - published_count
