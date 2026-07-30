@@ -156,9 +156,27 @@ class MatchEventsResource(Resource):
             )
 
         try:
-            log.info("match_event_added_for_match_%s", match_id)
+            event_type = data.get("event_type", "")
+            event_data = {k: v for k, v in data.items() if k != "event_type"}
+
+            if "status" in event_data:
+                match.status = event_data["status"]
+            if "home_score" in event_data:
+                match.home_score = event_data["home_score"]
+            if "away_score" in event_data:
+                match.away_score = event_data["away_score"]
+            if "minute" in event_data:
+                match.minute = event_data["minute"]
+
+            db.session.commit()
+
             return make_response(
-                {"message": "Event added successfully", "event": data}, 201
+                {
+                    "message": "Event processed successfully",
+                    "event": event_data,
+                    "match": match_schema.dump(match),
+                },
+                201,
             )
 
         except Exception as e:
