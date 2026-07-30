@@ -72,6 +72,18 @@ class CommentsResource(Resource):
             return make_response({"status": 500, "message": "An error occurred"}, 500)
 
 
+# /users/<int:user_id>/comments
+class UserCommentsResource(Resource):
+    # GET /users/<int:user_id>/comments - Public: Fetch all comments by a specific user
+    def get(self, user_id):
+        user = db.session.get(User, user_id)
+        if not user:
+            return make_response({"status": 404, "message": "User not found"}, 404)
+
+        comments = Comment.query.filter_by(user_id=user_id).all()
+        return make_response(comments_schema.dump(comments), 200)
+
+
 # /comments/<int:comment_id>
 class CommentByIDResource(Resource):
     # GET /comments/<int:comment_id> - Public: Fetch a single comment by ID

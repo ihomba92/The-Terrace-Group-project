@@ -24,4 +24,6 @@ export const mapComment = (c) => ({
   body: c.content,
   author: c.user?.username || "Unknown",
   time: c.created_at,
+  article_id: c.article_id,
+  user_id: c.user_id,
 });

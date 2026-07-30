@@ -203,7 +203,7 @@ def register_routes(api):
     )
     from resources.categories import CategoriesResource, CategoryByIDResource, CategoryArticlesResource
     from resources.articles import ArticlesResource, ArticleByIDResource, ArticleUpvoteResource, ArticleCommentsResource, UserArticlesResource    
-    from resources.comments import CommentsResource, CommentByIDResource
+    from resources.comments import CommentsResource, CommentByIDResource, UserCommentsResource
     from resources.reactions import ReactionsResource, ArticleReactionsResource, ReactionByIDResource, UserReactionsResource
     from resources.leagues import LeaguesResource, LeagueByIDResource
     from resources.teams import TeamsResource, TeamByIDResource
@@ -228,6 +228,7 @@ def register_routes(api):
     api.add_resource(UserArticlesResource, "/users/<int:user_id>/articles")
     api.add_resource(UserPredictionsResource, "/users/<int:user_id>/predictions")
     api.add_resource(UserReactionsResource, "/users/<int:user_id>/reactions")
+    api.add_resource(UserCommentsResource, "/users/<int:user_id>/comments")
 
     # Categories
     api.add_resource(CategoriesResource, "/categories")

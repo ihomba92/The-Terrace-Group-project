@@ -21,7 +21,7 @@ export default function MyComments() {
 
     let cancelled = false;
     api
-      .get(`/users/${userId}/reactions`)
+      .get(`/users/${userId}/comments`)
       .then((res) => {
         if (!cancelled) {
           const items = Array.isArray(res.data) ? res.data.map(mapComment) : [];
@@ -31,7 +31,7 @@ export default function MyComments() {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error("Failed to fetch user reactions:", err);
+          console.error("Failed to fetch user comments:", err);
           setComments([]);
           setLoading(false);
         }
@@ -70,12 +70,12 @@ export default function MyComments() {
       <div className="max-w-2xl mx-auto px-4 py-6 pb-0 lg:pb-0">
         {comments.length === 0 ? (
           <p className="text-sm text-terracing/60 dark:text-floodlight/50 text-center py-12">
-            You haven't posted a reaction yet.
+            You haven't posted a comment yet.
           </p>
         ) : (
           <ul className="space-y-4">
             {comments.map((c) => {
-              const author = resolveUser(c.author?.id || userId);
+              const author = resolveUser(c.user_id || userId);
               return (
                 <li key={c.id} className="p-4 border border-black/10 dark:border-white/10 rounded-card">
                   <div className="flex items-center gap-2">
