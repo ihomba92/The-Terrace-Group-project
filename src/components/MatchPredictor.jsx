@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/client";
 
@@ -13,47 +13,18 @@ import api from "../api/client";
  * @param {number|string} props.matchId - ID of the match being predicted.
  */
 export default function MatchPredictor({ articleId: _articleId, matchId }) {
-  // Score inputs
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
 
-  // Stance and justification text
-  const [reactionType, setReactionType] = useState("Home Win");
-  const [body, setBody] = useState("");
-
-  // Network and UI feedback states
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Placeholder consensus stat (can be backed by API in future iterations)
   const [communityPercentage] = useState(45);
 
-  // Authentication context
   const { user } = useAuth();
   const currentUserId = user?.id || user?.user_id;
 
-  /**
-   * Auto-calculate reaction_type based on score inputs whenever scores change.
-   */
-  useEffect(() => {
-    if (homeScore === "" || awayScore === "") return;
-
-    const h = Number(homeScore);
-    const a = Number(awayScore);
-
-    if (h > a) {
-      setReactionType("Home Win");
-    } else if (a > h) {
-      setReactionType("Away Win");
-    } else {
-      setReactionType("Draw");
-    }
-  }, [homeScore, awayScore]);
-
-  /**
-   * Handles form submission to the Flask API backend.
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -71,14 +42,10 @@ export default function MatchPredictor({ articleId: _articleId, matchId }) {
         match_id: matchId,
         predicted_home_score: Number(homeScore),
         predicted_away_score: Number(awayScore),
-        reaction_type: reactionType,
-        body,
       });
 
-      // Clear form inputs on successful submission
       setHomeScore("");
       setAwayScore("");
-      setBody("");
       setSuccessMsg("Prediction recorded successfully!");
     } catch (err) {
       console.error("Failed to submit prediction:", err);
@@ -127,25 +94,6 @@ export default function MatchPredictor({ articleId: _articleId, matchId }) {
             required
           />
         </div>
-
-        {/* Outcome Dropdown */}
-        <select
-          value={reactionType}
-          onChange={(e) => setReactionType(e.target.value)}
-          className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card p-3 text-sm text-night-pitch dark:text-floodlight font-body focus:outline-none focus:border-black/50 dark:focus:border-white/50 transition-colors duration-100 appearance-none">
-          <option value="Home Win">Home Win</option>
-          <option value="Away Win">Away Win</option>
-          <option value="Draw">Draw</option>
-        </select>
-
-        {/* Written Justification */}
-        <textarea
-          placeholder="Justify your stance..."
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card p-3 text-sm text-night-pitch dark:text-floodlight font-body h-20 resize-none focus:outline-none focus:border-black/50 dark:focus:border-white/50 transition-colors duration-100 placeholder:text-terracing/40 dark:placeholder:text-floodlight/40"
-          required
-        />
 
         {/* Success Feedback Message */}
         {successMsg && (
