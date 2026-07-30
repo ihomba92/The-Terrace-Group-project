@@ -19,7 +19,8 @@ export default function HomeFeed() {
       .get("/articles")
       .then((res) => {
         if (!cancelled) {
-          const items = Array.isArray(res.data?.articles) ? res.data.articles : [];
+          const raw = Array.isArray(res.data) ? res.data : (res.data?.articles ?? []);
+          const items = Array.isArray(raw) ? raw : [];
           setArticles(items.map(mapArticle));
           setLoading(false);
         }
