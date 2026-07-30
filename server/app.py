@@ -204,7 +204,7 @@ def register_routes(api):
     from resources.categories import CategoriesResource, CategoryByIDResource, CategoryArticlesResource
     from resources.articles import ArticlesResource, ArticleByIDResource, ArticleUpvoteResource, ArticleCommentsResource, UserArticlesResource    
     from resources.comments import CommentsResource, CommentByIDResource
-    from resources.reactions import ReactionsResource, ArticleReactionsResource, ReactionByIDResource, ReactionUpvoteResource, UserReactionsResource
+    from resources.reactions import ReactionsResource, ArticleReactionsResource, ReactionByIDResource, UserReactionsResource
     from resources.leagues import LeaguesResource, LeagueByIDResource
     from resources.teams import TeamsResource, TeamByIDResource
     from resources.matches import MatchesResource, MatchByIDResource, MatchLiveResource, MatchEventsResource, MatchPredictionsResource
@@ -248,7 +248,6 @@ def register_routes(api):
     api.add_resource(ReactionsResource, "/reactions")
     api.add_resource(ArticleReactionsResource, "/articles/<int:article_id>/reactions")
     api.add_resource(ReactionByIDResource, "/reactions/<int:reaction_id>")
-    api.add_resource(ReactionUpvoteResource, "/reactions/<int:reaction_id>/upvote")
 
     # Leagues & Teams
     api.add_resource(LeaguesResource, "/leagues")

@@ -24,5 +24,4 @@ export const mapComment = (c) => ({
   body: c.content,
   author: c.user?.username || "Unknown",
   time: c.created_at,
-  reaction_type: c.reaction_type || "comment",
 });

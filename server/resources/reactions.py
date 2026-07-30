@@ -204,25 +204,6 @@ class ReactionByIDResource(Resource):
             return make_response({"status": 500, "message": "An error occurred"}, 500)
 
 
-# /reactions/<int:reaction_id>/upvote
-class ReactionUpvoteResource(Resource):
-    # POST /reactions/<int:reaction_id>/upvote - Protected: Increment upvote count for a reaction
-    @jwt_required()
-    def post(self, reaction_id):
-        reaction = Reaction.query.filter_by(reaction_id=reaction_id).first()
-        if not reaction:
-            return make_response({"status": 404, "message": "Reaction not found"}, 404)
-
-        try:
-            reaction.upvotes = (getattr(reaction, "upvotes", 0) or 0) + 1
-            db.session.commit()
-            return make_response(reaction_schema.dump(reaction), 200)
-        except Exception as e:
-            db.session.rollback()
-            log.error("upvote_error: %s", str(e))
-            return make_response({"status": 500, "message": "An error occurred"}, 500)
-
-
 # /users/<int:user_id>/reactions
 class UserReactionsResource(Resource):
     # GET /users/<int:user_id>/reactions - Public: Fetch all reactions created by a specific user
