@@ -3,7 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_
 from marshmallow import ValidationError
-from models import db, User, Profile, Article, Prediction, Reaction
+from models import db, User, Profile, Article, Prediction, Reaction, user_follows
 from schemas import user_schema, users_schema, profile_schema
 from auth_utils import role_required
 
@@ -113,19 +113,25 @@ class UserStatsResource(Resource):
         posts_count = Article.query.filter_by(author_id=user_id).count()
         predictions_count = Prediction.query.filter_by(user_id=user_id).count()
 
-        # Calculate accuracy from resolved predictions
-        resolved_preds = Prediction.query.filter_by(user_id=user_id, status="RESOLVED").all()
-        correct_preds = sum(1 for p in resolved_preds if getattr(p, 'is_correct', False))
-        accuracy = (correct_preds / len(resolved_preds) * 100) if resolved_preds else 0.0
+        correct_preds = Prediction.query.filter_by(user_id=user_id, status="CORRECT").count()
+        total_resolved = Prediction.query.filter(
+            Prediction.user_id == user_id,
+            Prediction.status.in_(["CORRECT", "INCORRECT"]),
+        ).count()
+        accuracy = (correct_preds / total_resolved * 100) if total_resolved > 0 else 0.0
+
+        upvotes = db.session.query(db.func.sum(Article.likes_count)).filter(Article.author_id == user_id).scalar() or 0
+        followers = db.session.query(user_follows).filter(user_follows.c.following_id == user_id).count()
+        following = db.session.query(user_follows).filter(user_follows.c.follower_id == user_id).count()
 
         return make_response({
             "user_id": user_id,
             "posts": posts_count,
             "predictions": predictions_count,
             "accuracy_percentage": round(accuracy, 2),
-            "upvotes": 0,
-            "followers": 0,
-            "following": 0
+            "upvotes": upvotes,
+            "followers": followers,
+            "following": following,
         }, 200)
 
 
@@ -143,9 +149,34 @@ class UserFollowResource(Resource):
         if not target_user:
             return make_response({"status": 404, "message": "Target user not found"}, 404)
 
-        # Toggle follow/unfollow logic goes here using `current_user_id` as the follower
+        existing = db.session.query(user_follows).filter(
+            user_follows.c.follower_id == current_user_id,
+            user_follows.c.following_id == user_id,
+        ).first()
+
+        if existing:
+            db.session.execute(
+                user_follows.delete().where(
+                    user_follows.c.follower_id == current_user_id,
+                    user_follows.c.following_id == user_id,
+                )
+            )
+            db.session.commit()
+            return make_response(
+                {"message": f"Unfollowed user {user_id}", "following": False, "user_id": user_id},
+                200,
+            )
+
+        db.session.execute(
+            user_follows.insert().values(
+                follower_id=current_user_id,
+                following_id=user_id,
+            )
+        )
+        db.session.commit()
         return make_response(
-            {"message": f"User {current_user_id} toggled follow status for target user {user_id}"}, 200
+            {"message": f"Now following user {user_id}", "following": True, "user_id": user_id},
+            200,
         )
 
 
@@ -157,7 +188,9 @@ class UserFollowersResource(Resource):
         if not user:
             return make_response({"status": 404, "message": "User not found"}, 404)
 
-        return make_response({"followers": []}, 200)
+        follows = db.session.query(user_follows).filter(user_follows.c.following_id == user_id).all()
+        follower_ids = [f.follower_id for f in follows]
+        return make_response({"followers": follower_ids}, 200)
 
 
 # /users/<int:user_id>/following
@@ -168,4 +201,6 @@ class UserFollowingResource(Resource):
         if not user:
             return make_response({"status": 404, "message": "User not found"}, 404)
 
-        return make_response({"following": []}, 200)
+        follows = db.session.query(user_follows).filter(user_follows.c.follower_id == user_id).all()
+        following_ids = [f.following_id for f in follows]
+        return make_response({"following": following_ids}, 200)

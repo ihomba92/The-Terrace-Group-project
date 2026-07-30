@@ -45,6 +45,15 @@ class User(db.Model):
         "Prediction", back_populates="user", cascade="all, delete-orphan"
     )
 
+    # Self-referential many-to-many: users following other users
+    followers = db.relationship(
+        "User",
+        secondary="user_follows",
+        primaryjoin="User.user_id==user_follows.c.following_id",
+        secondaryjoin="User.user_id==user_follows.c.follower_id",
+        backref=db.backref("following", lazy="dynamic"),
+    )
+
     # PASSWORD HASHING METHODS
     def set_password(self, password):
         """Hashes the plain text password before saving."""
@@ -161,6 +170,13 @@ class Follow(db.Model):
     category_id = db.Column(
         db.Integer, db.ForeignKey("categories.category_id"), primary_key=True
     )
+
+
+class UserFollow(db.Model):
+    __tablename__ = "user_follows"
+
+    follower_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    following_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
 
 
 class League(db.Model):
