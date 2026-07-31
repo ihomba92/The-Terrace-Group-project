@@ -1,7 +1,10 @@
 from datetime import datetime
 from flask_bcrypt import Bcrypt
 
-from server.extensions import db
+try:
+    from server.extensions import db
+except ImportError:
+    from extensions import db
 
 bcrypt = Bcrypt()
 
