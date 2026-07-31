@@ -10,7 +10,7 @@ from flask_limiter.util import get_remote_address
 import structlog
 import sys
 
-from server.extensions import db, bcrypt, jwt, migrate, cors
+from extensions import db, bcrypt, jwt, migrate, cors
 
 
 def configure_logging():
@@ -55,10 +55,10 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = jwt_secret_key
 
     instance_dir = os.path.join(basedir, "instance")
-    
+
     # Programmatically ensure the instance directory exists to avoid operational errors
     os.makedirs(instance_dir, exist_ok=True)
-    
+
     # Robust absolute path resolution for SQLite databases specified via env or default
     env_db_url = os.getenv("DATABASE_URL")
     if env_db_url:
@@ -126,9 +126,9 @@ def create_app():
     def log_request_complete(response):
         if request.path == "/favicon.ico":
             return response
-            
+
         duration = time.time() - getattr(g, "start_time", time.time())
-        
+
         log_method = logger.info
         if 400 <= response.status_code < 500:
             log_method = logger.warn
@@ -188,7 +188,7 @@ def create_app():
     # TOKEN BLOCKLIST LOADER
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(jwt_header, jwt_payload):
-        from server.models import TokenBlocklist
+        from models import TokenBlocklist
         jti = jwt_payload.get("jti")
         token = db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar()
         return token is not None
@@ -230,30 +230,30 @@ def create_app():
 
 
 def register_routes(api):
-    from server.resources.auth import (
-        RegisterResource, 
-        LoginResource, 
-        LogoutResource, 
-        MeResource, 
+    from resources.auth import (
+        RegisterResource,
+        LoginResource,
+        LogoutResource,
+        MeResource,
         RefreshTokenResource
     )
-    from server.resources.users import (
-        UsersResource, UserByIDResource, UserFollowResource, 
+    from resources.users import (
+        UsersResource, UserByIDResource, UserFollowResource,
         UserFollowersResource, UserFollowingResource, UserStatsResource
     )
-    from server.resources.categories import CategoriesResource, CategoryByIDResource, CategoryArticlesResource
-    from server.resources.articles import ArticlesResource, ArticleByIDResource, ArticleUpvoteResource, ArticleCommentsResource, UserArticlesResource, NewsResource   
-    from server.resources.reactions import ReactionsResource, ArticleReactionsResource, ReactionByIDResource, ReactionUpvoteResource, UserReactionsResource
-    from server.resources.leagues import LeaguesResource, LeagueByIDResource
-    from server.resources.teams import TeamsResource, TeamByIDResource
-    from server.resources.matches import MatchesResource, MatchByIDResource, MatchLiveResource, MatchEventsResource, MatchPredictionsResource
-    from server.resources.predictions import PredictionsResource, PredictionByIDResource, PredictionResolveResource, UserPredictionsResource
-    from server.resources.admin import AdminReportsResource, AdminArticlePublishResource
+    from resources.categories import CategoriesResource, CategoryByIDResource, CategoryArticlesResource
+    from resources.articles import ArticlesResource, ArticleByIDResource, ArticleUpvoteResource, ArticleCommentsResource, UserArticlesResource, NewsResource
+    from resources.reactions import ReactionsResource, ArticleReactionsResource, ReactionByIDResource, ReactionUpvoteResource, UserReactionsResource
+    from resources.leagues import LeaguesResource, LeagueByIDResource
+    from resources.teams import TeamsResource, TeamByIDResource
+    from resources.matches import MatchesResource, MatchByIDResource, MatchLiveResource, MatchEventsResource, MatchPredictionsResource
+    from resources.predictions import PredictionsResource, PredictionByIDResource, PredictionResolveResource, UserPredictionsResource
+    from resources.admin import AdminReportsResource, AdminArticlePublishResource
 
     # Auth Routes
     api.add_resource(RegisterResource, "/auth/register")
     api.add_resource(LoginResource, "/auth/login")
-    api.add_resource(LogoutResource, "/auth/logout") 
+    api.add_resource(LogoutResource, "/auth/logout")
     api.add_resource(MeResource, "/auth/me")
     api.add_resource(RefreshTokenResource, "/auth/refresh")
 
