@@ -19,6 +19,7 @@ rich = "*"
 requests = "*"
 gunicorn = "*"
 flask-limiter = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
