@@ -17,6 +17,7 @@ flask-cors = "*"
 structlog = "*"
 rich = "*"
 requests = "*"
+gunicorn = "*"
 
 [dev-packages]
 
