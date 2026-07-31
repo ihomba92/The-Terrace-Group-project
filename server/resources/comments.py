@@ -5,18 +5,13 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 import bleach
 
-try:
-    from server.models import db, Comment, Article, User
-    from server.schemas import comment_schema, comments_schema
-    from server.auth_utils import role_required
-except ImportError:
-    from models import db, Comment, Article, User
-    from schemas import comment_schema, comments_schema
-    from auth_utils import role_required
+from models import db, Comment, Article, User
+from schemas import comment_schema, comments_schema
+from auth_utils import role_required
 
 # Standard logging fallback
 try:
-    from server.extensions import log
+    from extensions import log
 except ImportError:
     import logging
     log = logging.getLogger(__name__)

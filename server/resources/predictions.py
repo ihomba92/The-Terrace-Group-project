@@ -1,17 +1,13 @@
 from flask import request, make_response
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
-try:
-    from server.auth_utils import role_required
-    from server.models import db, Match, Prediction
-    from server.schemas import prediction_schema, predictions_schema
-except ImportError:
-    from auth_utils import role_required
-    from models import db, Match, Prediction
-    from schemas import prediction_schema, predictions_schema
+
+from auth_utils import role_required
+from models import db, Match, Prediction
+from schemas import prediction_schema, predictions_schema
 
 try:
-    from server.extensions import log
+    from extensions import log
 except ImportError:
     import logging
 

@@ -10,12 +10,8 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-try:
-    from server.models import db, User, Profile, TokenBlocklist
-    from server.schemas import user_schema, login_schema, register_schema
-except ImportError:
-    from models import db, User, Profile, TokenBlocklist
-    from schemas import user_schema, login_schema, register_schema
+from models import db, User, Profile, TokenBlocklist
+from schemas import user_schema, login_schema, register_schema
 
 
 class RegisterResource(Resource):

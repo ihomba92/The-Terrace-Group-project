@@ -41,7 +41,7 @@ def get_engine_url():
 target_db = current_app.extensions['migrate'].db
 
 # Import all your models so Alembic can autogenerate them
-from ..models import (
+from models import (
     User,
     Profile,
     Category,

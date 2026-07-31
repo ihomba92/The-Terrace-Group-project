@@ -3,18 +3,13 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_, func
 from marshmallow import ValidationError
-try:
-    from server.models import db, User, Profile, Article, Prediction, Reaction, Follow, Category
-    from server.schemas import user_schema, users_schema, profile_schema
-    from server.auth_utils import role_required
-except ImportError:
-    from models import db, User, Profile, Article, Prediction, Reaction, Follow, Category
-    from schemas import user_schema, users_schema, profile_schema
-    from auth_utils import role_required
 
+from models import db, User, Profile, Article, Prediction, Reaction, Follow, Category
+from schemas import user_schema, users_schema, profile_schema
+from auth_utils import role_required
 
 try:
-    from server.extensions import log
+    from extensions import log
 except ImportError:
     import logging
     log = logging.getLogger(__name__)

@@ -1,16 +1,12 @@
 from flask import request, make_response
 from flask_restful import Resource
-try:
-    from server.models import db, Team
-    from server.schemas import team_schema, teams_schema
-    from server.auth_utils import role_required  # <-- Properly imported decorator
-except ImportError:
-    from models import db, Team
-    from schemas import team_schema, teams_schema
-    from auth_utils import role_required  # <-- Properly imported decorator
+
+from models import db, Team
+from schemas import team_schema, teams_schema
+from auth_utils import role_required  # <-- Properly imported decorator
 
 try:
-    from server.extensions import log
+    from extensions import log
 except ImportError:
     import logging
     log = logging.getLogger(__name__)
