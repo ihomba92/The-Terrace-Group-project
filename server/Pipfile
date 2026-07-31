@@ -18,6 +18,7 @@ structlog = "*"
 rich = "*"
 requests = "*"
 gunicorn = "*"
+flask-limiter = "*"
 
 [dev-packages]
 
