@@ -1,10 +1,11 @@
 import axios from "axios";
 
-// 1. Create the base Axios instance
+// 1. Create the base Axios instance with dynamic environment URL fallback
 const api = axios.create({
-  baseURL: 'http://localhost:5555',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5555',
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
+  timeout: 15000, // fail reasonably fast so a retry can kick in
 });
 
 // 2. Request Interceptor: Attach authorization token if present
@@ -16,15 +17,37 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 3. Response Interceptor: Handle global 401 Unauthorized responses
+// 3. Response Interceptor: Handle global 401s AND cold-start retry
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+
+    // Detect a likely cold-start / connection failure:
+    // no response received at all (refused connection, network error, or timeout)
+    const isConnectionIssue =
+      !error.response &&
+      (error.code === "ECONNABORTED" || error.message === "Network Error");
+
+    // Retry once per request only — avoid infinite loops if the server is genuinely down
+    if (isConnectionIssue && config && !config._retried) {
+      config._retried = true;
+
+      // Let the UI know we're retrying
+      window.dispatchEvent(new CustomEvent("server-waking-up"));
+
+      // Give Render a few seconds to finish booting before retrying
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      return api(config); // retry the exact same request once
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
+
     return Promise.reject(error);
   },
 );
