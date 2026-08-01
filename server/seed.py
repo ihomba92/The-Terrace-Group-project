@@ -1,14 +1,10 @@
-import os
-import sys
 from datetime import datetime, timedelta
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from flask_bcrypt import Bcrypt
 
-from server import create_app
-from server.extensions import db
-from server.models import (
+from app import create_app
+from extensions import db
+from models import (
     Article,
     Category,
     Comment,
