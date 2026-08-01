@@ -67,7 +67,7 @@ class Profile(db.Model):
     __tablename__ = "profile"
 
     id = db.Column(db.Integer, primary_key=True)
-    gender = db.Column(db.String(10), nullable=False)
+    gender = db.Column(db.String(50), nullable=False)
     profile_pic = db.Column(db.String(200), default="https://placeholder.com")
     bio = db.Column(db.String(400), nullable=False)
     role = db.Column(

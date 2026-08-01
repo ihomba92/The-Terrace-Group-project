@@ -174,7 +174,7 @@ def create_app():
     cors.init_app(
         app,
         supports_credentials=True,
-        origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        origins=["http://localhost:5173", "https://the-terrace-group-project-ruddy.vercel.app", "https://the-terrace-group-project.onrender.com"],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
