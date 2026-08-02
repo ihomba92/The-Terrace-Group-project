@@ -5,22 +5,10 @@ import { Field, Button } from "../components/UI";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
-const ROLES = ["user", "author", "admin"];
-
-const BIO_META = {
-  User: {
-    label: "Terrace Bio",
-    placeholder: "Tell us about your terrace style...",
-  },
-  Author: { label: "Writing Niche", placeholder: "What do you write about?" },
-  Admin: { label: "Admin Notes", placeholder: "Internal notes (optional)..." },
-};
-
 const INITIAL_FORM = {
   firstName: "",
   lastName: "",
   username: "",
-  role: ROLES[0],
   email: "",
   password: "",
   bio: "",
@@ -47,8 +35,6 @@ export default function CreateAccount() {
     }
   };
 
-  const bioMeta = BIO_META[form.role] || BIO_META.User;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -59,7 +45,6 @@ export default function CreateAccount() {
         username: form.username,
         email: form.email,
         password: form.password,
-        role: form.role,
       });
 
       localStorage.setItem("token", res.data.access_token || res.data.token);
@@ -126,27 +111,6 @@ export default function CreateAccount() {
           required
         />
 
-        <label className="block">
-          <span className="block font-mono text-[11px] uppercase tracking-[0.1em] text-terracing/70 dark:text-floodlight/50 mb-1.5">
-            Role
-          </span>
-          <select
-            className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card px-3 py-2.5 text-sm text-night-pitch dark:text-floodlight focus:outline-none focus:border-black/50 dark:focus:border-white/50"
-            value={form.role}
-            onChange={(e) => update("role", e.target.value)}
-          >
-            {ROLES.map((r) => (
-              <option
-                key={r}
-                value={r}
-                className="bg-floodlight dark:bg-night-pitch"
-              >
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
-
         <Field
           label="Email"
           type="email"
@@ -181,10 +145,10 @@ export default function CreateAccount() {
 
         <label className="block">
           <span className="block font-mono text-[11px] uppercase tracking-[0.1em] text-terracing/70 dark:text-floodlight/50 mb-1.5">
-            {bioMeta.label}
+            Terrace Bio
           </span>
           <textarea
-            placeholder={bioMeta.placeholder}
+            placeholder="Tell us about your terrace style..."
             value={form.bio}
             onChange={(e) => update("bio", e.target.value)}
             rows={3}

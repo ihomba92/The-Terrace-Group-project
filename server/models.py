@@ -70,11 +70,7 @@ class Profile(db.Model):
     gender = db.Column(db.String(50), nullable=False)
     profile_pic = db.Column(db.String(200), default="https://placeholder.com")
     bio = db.Column(db.String(400), nullable=False)
-    role = db.Column(
-        db.Enum("admin", "author", "user", name="user_roles"),
-        nullable=False,
-        default="user",
-    )
+    role = db.Column(db.String(10), nullable=False, default="user")
     user_id = db.Column(
         db.Integer, db.ForeignKey("users.user_id"), unique=True, nullable=False
     )
@@ -203,6 +199,7 @@ class League(db.Model):
     name = db.Column(db.String(100), nullable=False)
     country = db.Column(db.String(100), nullable=False)
     logo_url = db.Column(db.String(255), nullable=True)
+    external_id = db.Column(db.Integer, unique=True, nullable=True)  # football-data.org competition ID
 
     teams = db.relationship(
         "Team", back_populates="league", cascade="all, delete-orphan"
@@ -220,6 +217,7 @@ class Team(db.Model):
     short_code = db.Column(db.String(10), nullable=False)
     logo_url = db.Column(db.String(255), nullable=True)
     league_id = db.Column(db.Integer, db.ForeignKey("leagues.id"), nullable=False)
+    external_id = db.Column(db.Integer, unique=True, nullable=True)  # football-data.org team ID
 
     league = db.relationship("League", back_populates="teams")
     home_matches = db.relationship(
@@ -250,6 +248,7 @@ class Match(db.Model):
     home_score = db.Column(db.Integer, nullable=True)
     away_score = db.Column(db.Integer, nullable=True)
     minute = db.Column(db.String(10), nullable=True)
+    external_id = db.Column(db.Integer, unique=True, nullable=True)  # football-data.org match ID
 
     league = db.relationship("League", back_populates="matches")
     home_team = db.relationship(

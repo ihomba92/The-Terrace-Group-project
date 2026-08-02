@@ -248,9 +248,9 @@ def register_routes(api):
     from resources.teams import TeamsResource, TeamByIDResource
     from resources.matches import MatchesResource, MatchByIDResource, MatchLiveResource, MatchEventsResource, MatchPredictionsResource
     from resources.predictions import PredictionsResource, PredictionByIDResource, PredictionResolveResource, UserPredictionsResource
-    from resources.admin import AdminReportsResource, AdminArticlePublishResource
-
-    # Auth Routes
+    from resources.admin import AdminReportsResource, AdminArticlePublishResource, AdminUserRoleResource
+    from resources.sync import AdminSyncMatchesResource   
+    
     api.add_resource(RegisterResource, "/auth/register")
     api.add_resource(LoginResource, "/auth/login")
     api.add_resource(LogoutResource, "/auth/logout")
@@ -307,7 +307,8 @@ def register_routes(api):
     # Admin
     api.add_resource(AdminReportsResource, "/admin/reports")
     api.add_resource(AdminArticlePublishResource, "/admin/articles/<int:article_id>/publish")
-
+    api.add_resource(AdminUserRoleResource, "/admin/users/<int:user_id>/role")
+    api.add_resource(AdminSyncMatchesResource, "/admin/sync-matches")
 
 app = create_app()
 
