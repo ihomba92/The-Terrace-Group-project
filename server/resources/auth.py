@@ -170,10 +170,18 @@ class MeResource(Resource):
     @jwt_required()
     def get(self):
         """Protected route to get current authenticated user's profile."""
-        current_user_id = get_jwt_identity()
-        user = db.session.get(User, int(current_user_id))
+        try:
+            current_user_id = get_jwt_identity()
+            # Ensure it's converted cleanly to an int
+            user_id = int(current_user_id)
+            
+            user = db.session.get(User, user_id)
 
-        if not user:
-            return make_response({"status": 404, "message": "User not found"}, 404)
+            if not user:
+                return make_response({"status": 404, "message": "User not found"}, 404)
 
-        return make_response(user_schema.dump(user), 200)
+            return make_response(user_schema.dump(user), 200)
+            
+        except Exception as e:
+            db.session.rollback()
+            return make_response({"status": 500, "message": f"Server error: {str(e)}"}, 500)
