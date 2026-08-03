@@ -102,7 +102,7 @@ def create_app():
     limiter = Limiter(
         key_func=get_remote_address,
         app=app,
-        default_limits=["200 per day", "50 per hour"],
+        default_limits=["300 per day", "100 per hour"],
         storage_uri="memory://"
     )
 
@@ -249,7 +249,9 @@ def register_routes(api):
     from resources.matches import MatchesResource, MatchByIDResource, MatchLiveResource, MatchEventsResource, MatchPredictionsResource
     from resources.predictions import PredictionsResource, PredictionByIDResource, PredictionResolveResource, UserPredictionsResource
     from resources.admin import AdminReportsResource, AdminArticlePublishResource, AdminUserRoleResource
-    from resources.sync import AdminSyncMatchesResource   
+    from resources.sync import AdminSyncMatchesResource 
+    from resources.bookmarks import ArticleBookmarkResource, UserBookmarksResource  
+    from resources.external_articles import ImportExternalArticleResource, AdminSeedExternalArticlesResource
     
     api.add_resource(RegisterResource, "/auth/register")
     api.add_resource(LoginResource, "/auth/login")
@@ -279,6 +281,10 @@ def register_routes(api):
     api.add_resource(ArticleByIDResource, "/articles/<int:article_id>")
     api.add_resource(ArticleUpvoteResource, "/articles/<int:article_id>/upvote")
     api.add_resource(ArticleCommentsResource, "/articles/<int:article_id>/comments")
+
+    #Bookmarks
+    api.add_resource(ArticleBookmarkResource, "/articles/<int:article_id>/bookmark")
+    api.add_resource(UserBookmarksResource, "/users/<int:user_id>/bookmarks")
 
     # Reactions
     api.add_resource(ReactionsResource, "/reactions")
@@ -310,6 +316,9 @@ def register_routes(api):
     api.add_resource(AdminUserRoleResource, "/admin/users/<int:user_id>/role")
     api.add_resource(AdminSyncMatchesResource, "/admin/sync-matches")
 
+    # External Articles
+    api.add_resource(ImportExternalArticleResource, "/articles/import-external")
+    api.add_resource(AdminSeedExternalArticlesResource, "/admin/seed-external-articles")
 app = create_app()
 
 if __name__ == "__main__":

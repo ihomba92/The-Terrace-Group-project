@@ -88,10 +88,10 @@ class Article(db.Model):
     article_id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False, unique=True)
     content = db.Column(db.String(2000), nullable=False)
-    cover_image = db.Column(db.String(100), default="https://placeholder.com")
+    cover_image = db.Column(db.String(500), default="https://placeholder.com")
     view_count = db.Column(db.Integer, default=0, nullable=False)
     likes_count = db.Column(db.Integer, default=0, nullable=False)
-    author_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
     category_id = db.Column(
         db.Integer, db.ForeignKey("categories.category_id"), nullable=False
     )
@@ -100,6 +100,8 @@ class Article(db.Model):
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+    external_url = db.Column(db.String(500), unique=True, nullable=True)
+    source_name = db.Column(db.String(100), nullable=True)
 
     author = db.relationship("User", back_populates="articles")
     category = db.relationship("Category", back_populates="articles")
@@ -189,6 +191,24 @@ class Follow(db.Model):
     __table_args__ = (
         db.Index("idx_follows_user_id", "user_id"),
         db.Index("idx_follows_category_id", "category_id"),
+    )
+
+
+class Bookmark(db.Model):
+    __tablename__ = "bookmarks"
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    article_id = db.Column(
+        db.Integer, db.ForeignKey("articles.article_id"), primary_key=True
+    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="bookmarks")
+    article = db.relationship("Article", backref="bookmarked_by")
+
+    __table_args__ = (
+        db.Index("idx_bookmarks_user_id", "user_id"),
+        db.Index("idx_bookmarks_article_id", "article_id"),
     )
 
 
