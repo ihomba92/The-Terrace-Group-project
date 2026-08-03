@@ -19,9 +19,14 @@ export const mapCategory = (c) => ({
 });
 
 export const mapComment = (c) => ({
-  id: c.comment_id || c.id,
-  body: c.content,
-  author: c.user?.username || "Unknown",
+  id: c.comment_id ?? c.reaction_id ?? c.id,
+  body: c.content ?? c.body,
+  author: {
+    id: c.user?.id,
+    username: c.user?.username || "Unknown",
+  },
+  articleId: c.article?.id ?? c.article_id,
+  articleTitle: c.article?.title,
   time: c.created_at,
   reaction_type: c.reaction_type || "comment",
 });

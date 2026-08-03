@@ -3,52 +3,40 @@ import { Link } from "react-router-dom";
 import { Screen, Header, KindLabel, MetaRow } from "../components/UI";
 import BottomNav from "../components/BottomNav";
 import { IconBookmark } from "../components/Icons";
-import { articles as mockArticles } from "../data";
-import api from "../api/client";
 import { mapArticle } from "../api/mappers";
 import { getBookmarks, removeBookmark } from "../api/bookmarks";
+import { useAuth } from "../context/AuthContext";
 
 export default function Bookmarks() {
   const [bookmarkedArticles, setBookmarkedArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const userId = user?.id || user?.user_id;
 
   useEffect(() => {
-    let cancelled = false;
-    const ids = getBookmarks();
-
-    if (ids.length === 0) {
+    if (!userId) {
       setBookmarkedArticles([]);
       setLoading(false);
       return;
     }
 
-    api
-      .get("/articles")
-      .then((res) => {
-        if (!cancelled) {
-          const items = Array.isArray(res.data?.articles) ? res.data.articles : [];
-          const mapped = items.map(mapArticle);
-          const filtered = mapped.filter((a) => ids.includes(a.id));
-          setBookmarkedArticles(filtered);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          console.error("Failed to fetch bookmarked articles:", err);
-          const fallback = mockArticles.filter((a) => ids.includes(a.id));
-          setBookmarkedArticles(fallback);
-          setLoading(false);
-        }
-      });
+    let cancelled = false;
+    getBookmarks(userId).then((items) => {
+      if (!cancelled) {
+        setBookmarkedArticles(items.map(mapArticle));
+        setLoading(false);
+      }
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userId]);
 
-  const handleRemove = (articleId) => {
-    removeBookmark(articleId);
-    setBookmarkedArticles((prev) => prev.filter((a) => a.id !== articleId));
+  const handleRemove = async (articleId) => {
+    const success = await removeBookmark(articleId);
+    if (success) {
+      setBookmarkedArticles((prev) => prev.filter((a) => a.id !== articleId));
+    }
   };
 
   if (loading) {

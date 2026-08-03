@@ -1,12 +1,39 @@
 import { LivePip } from "./UI";
+import { Skeleton } from "./Skeleton";
 
 // Signature element: faint terracing-step texture behind the live scoreboard.
-export function Scoreboard({ match }) {
-  const safeMatch = match || {
-    home: { name: "TBD", score: 0 },
-    away: { name: "TBD", score: 0 },
-    status: "SCHEDULED",
-    minute: "",
+export function Scoreboard({ match, loading = false }) {
+  if (loading) {
+    return (
+      <div className="relative overflow-hidden rounded-cardLg border border-black/10 dark:border-white/10 bg-night-pitch text-floodlight p-5">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="w-16 h-4 rounded" />
+          <Skeleton className="w-12 h-4 rounded" />
+        </div>
+        <div className="flex items-center justify-between gap-4 py-2">
+          <Skeleton className="w-1/2 h-8 rounded" />
+          <Skeleton className="w-10 h-8 rounded" />
+        </div>
+        <div className="my-4 h-px bg-terracing/40" />
+        <div className="flex items-center justify-between gap-4 py-2">
+          <Skeleton className="w-1/2 h-8 rounded" />
+          <Skeleton className="w-10 h-8 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  const safeMatch = {
+    home: { 
+      name: match?.home?.name ?? "TBD", 
+      score: match?.home?.score ?? 0 
+    },
+    away: { 
+      name: match?.away?.name ?? "TBD", 
+      score: match?.away?.score ?? 0 
+    },
+    status: match?.status ?? "SCHEDULED",
+    minute: match?.minute ?? "",
   };
 
   return (

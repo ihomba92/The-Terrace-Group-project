@@ -1,37 +1,32 @@
-const STORAGE_KEY = "bookmarks";
+import api from "./client";
 
-export function getBookmarks() {
+export async function getBookmarks(userId) {
+  if (!userId) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
+    const res = await api.get(`/users/${userId}/bookmarks`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.error("Failed to fetch bookmarks:", err);
     return [];
   }
 }
 
-export function addBookmark(articleId) {
+export async function addBookmark(articleId) {
   try {
-    const bookmarks = getBookmarks();
-    if (!bookmarks.includes(articleId)) {
-      bookmarks.push(articleId);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
-    }
-    return bookmarks;
-  } catch {
-    return [];
+    await api.post(`/articles/${articleId}/bookmark`);
+    return true;
+  } catch (err) {
+    console.error("Failed to add bookmark:", err);
+    return false;
   }
 }
 
-export function removeBookmark(articleId) {
+export async function removeBookmark(articleId) {
   try {
-    const bookmarks = getBookmarks().filter((id) => id !== articleId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
-    return bookmarks;
-  } catch {
-    return [];
+    await api.delete(`/articles/${articleId}/bookmark`);
+    return true;
+  } catch (err) {
+    console.error("Failed to remove bookmark:", err);
+    return false;
   }
-}
-
-export function isBookmarked(articleId) {
-  return getBookmarks().includes(articleId);
 }

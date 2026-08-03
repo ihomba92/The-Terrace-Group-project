@@ -4,7 +4,6 @@ import { KindLabel, MetaRow } from "./UI";
 
 export default function ArticleCard({ article }) {
   const [imgError, setImgError] = useState(false);
-  
   const {
     id,
     title = "Untitled",
@@ -14,15 +13,19 @@ export default function ArticleCard({ article }) {
     comments = 0,
     isExternal,
     url,
+    cover_image,
     image,
   } = article || {};
+
+  // Use cover_image if available, fallback to image or placeholder
+  const articleImage = cover_image || image || "/placeholder.svg";
 
   const cardContent = (
     <>
       <div className="w-full h-40 overflow-hidden bg-terracing/20 dark:bg-terracing/40 flex-shrink-0">
         {!imgError && (
-          <img
-            src={image || "/placeholder.svg"}
+         <img
+            src={articleImage}
             alt={title}
             onError={() => setImgError(true)}
             className="w-full h-full object-cover"

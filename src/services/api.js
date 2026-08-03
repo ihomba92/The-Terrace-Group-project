@@ -84,6 +84,14 @@ export const commentsApi = {
   delete: (commentId) => api.delete(`/comments/${commentId}`),
 };
 
+// Reaction Management Endpoints
+export const reactionsApi = {
+  getByArticle: (articleId) => api.get(`/articles/${articleId}/reactions`),
+  create: (data) => api.post("/reactions", data),
+  upvote: (reactionId) => api.post(`/reactions/${reactionId}/upvote`),
+  delete: (reactionId) => api.delete(`/reactions/${reactionId}`),
+};
+
 // Sports Data Endpoints
 export const leaguesApi = {
   getAll: () => api.get("/leagues"),

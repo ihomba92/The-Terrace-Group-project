@@ -3,10 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { Screen, Header, Button, KindLabel, MetaRow } from "../components/UI";
 import BottomNav from "../components/BottomNav";
 import { IconEdit, IconCamera } from "../components/Icons";
-import { profile } from "../data";
 import api from "../api/client";
 import { mapArticle } from "../api/mappers";
 import { useAuth } from "../context/AuthContext";
+
+const EMPTY_PROFILE = {
+  name: "",
+  handle: "",
+  bio: "",
+  avatar: "",
+  stats: { followers: 0 },
+};
 
 const normalizeUser = (raw, fallback) => {
   if (!raw) return fallback;
@@ -46,7 +53,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!userId) {
-      setUserData(profile);
+      setUserData(EMPTY_PROFILE);
       setLoading(false);
       return;
     }
@@ -56,21 +63,21 @@ export default function Profile() {
       .get(`/users/${userId}`)
       .then((res) => {
         if (!cancelled) {
-          setUserData(normalizeUser(res.data, profile));
+          setUserData(normalizeUser(res.data, EMPTY_PROFILE));
           setLoading(false);
         }
       })
       .catch((err) => {
         if (!cancelled) {
           console.error("Failed to fetch user:", err);
-          setUserData(storedUser || profile);
+          setUserData(storedUser || EMPTY_PROFILE);
           setLoading(false);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [userId, storedUser, profile]);
+  }, [userId, storedUser]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +108,7 @@ export default function Profile() {
     };
   }, [userId]);
 
-  const displayUser = userData || profile;
+  const displayUser = userData || EMPTY_PROFILE;
   const postsCount = posts.length;
   const upvotesCount = posts.reduce((sum, a) => sum + (a.upvotes || 0), 0);
   const followersCount = displayUser.stats?.followers ?? 0;
