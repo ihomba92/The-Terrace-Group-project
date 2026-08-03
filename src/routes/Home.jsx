@@ -4,7 +4,9 @@ import BottomNav from "../components/BottomNav";
 import ArticleCard from "../components/ArticleCard";
 import { LeagueTable } from "../components/Scoreboard";
 import { Skeleton } from "../components/Skeleton";
-import { categories, table } from "../data";
+import { categories } from "../data";
+import { leaguesApi } from "../services/api";
+import { computeStandings } from "../utils/standings";
 import { externalNewsApi } from "../services/api";
 import { mapArticle } from "../api/mappers";
 
@@ -12,6 +14,8 @@ export default function HomeFeed() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [standings, setStandings] = useState([]);
+
 
   // Re-fetch news whenever the active category changes
   useEffect(() => {
@@ -50,6 +54,22 @@ export default function HomeFeed() {
     [],
   );
 
+useEffect(() => {
+  leaguesApi
+    .getAll()
+    .then((res) => {
+      const leagues = res.data?.leagues || [];
+      // Default to the first league (adjust if you want a specific one, e.g. Premier League)
+      const primaryLeague = leagues[0];
+      if (primaryLeague) {
+        setStandings(computeStandings(primaryLeague));
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to fetch leagues:", err);
+      setStandings([]);
+    });
+}, []);
   return (
     <Screen sidebar nav>
       <Header title="The Terrace" />
@@ -105,11 +125,17 @@ export default function HomeFeed() {
         )}
 
         {/* League Table Section */}
-        <section className="py-6">
+          <section className="py-6">
           <h2 className="font-display font-bold uppercase text-lg tracking-wide text-night-pitch dark:text-floodlight mb-3">
             League Table
           </h2>
-          <LeagueTable rows={table} />
+          {standings.length > 0 ? (
+            <LeagueTable rows={standings} />
+          ) : (
+            <p className="font-mono text-sm text-terracing/60 dark:text-floodlight/50">
+              No standings available yet.
+            </p>
+          )}
         </section>
       </main>
 

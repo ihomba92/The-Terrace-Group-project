@@ -70,11 +70,7 @@ class Profile(db.Model):
     gender = db.Column(db.String(50), nullable=False)
     profile_pic = db.Column(db.String(200), default="https://placeholder.com")
     bio = db.Column(db.String(400), nullable=False)
-    role = db.Column(
-        db.Enum("admin", "author", "user", name="user_roles"),
-        nullable=False,
-        default="user",
-    )
+    role = db.Column(db.String(10), nullable=False, default="user")
     user_id = db.Column(
         db.Integer, db.ForeignKey("users.user_id"), unique=True, nullable=False
     )
@@ -92,10 +88,10 @@ class Article(db.Model):
     article_id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False, unique=True)
     content = db.Column(db.String(2000), nullable=False)
-    cover_image = db.Column(db.String(100), default="https://placeholder.com")
+    cover_image = db.Column(db.String(500), default="https://placeholder.com")
     view_count = db.Column(db.Integer, default=0, nullable=False)
     likes_count = db.Column(db.Integer, default=0, nullable=False)
-    author_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
     category_id = db.Column(
         db.Integer, db.ForeignKey("categories.category_id"), nullable=False
     )
@@ -104,6 +100,8 @@ class Article(db.Model):
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+    external_url = db.Column(db.String(500), unique=True, nullable=True)
+    source_name = db.Column(db.String(100), nullable=True)
 
     author = db.relationship("User", back_populates="articles")
     category = db.relationship("Category", back_populates="articles")
@@ -196,6 +194,24 @@ class Follow(db.Model):
     )
 
 
+class Bookmark(db.Model):
+    __tablename__ = "bookmarks"
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    article_id = db.Column(
+        db.Integer, db.ForeignKey("articles.article_id"), primary_key=True
+    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="bookmarks")
+    article = db.relationship("Article", backref="bookmarked_by")
+
+    __table_args__ = (
+        db.Index("idx_bookmarks_user_id", "user_id"),
+        db.Index("idx_bookmarks_article_id", "article_id"),
+    )
+
+
 class League(db.Model):
     __tablename__ = "leagues"
 
@@ -203,6 +219,7 @@ class League(db.Model):
     name = db.Column(db.String(100), nullable=False)
     country = db.Column(db.String(100), nullable=False)
     logo_url = db.Column(db.String(255), nullable=True)
+    external_id = db.Column(db.Integer, unique=True, nullable=True)  # football-data.org competition ID
 
     teams = db.relationship(
         "Team", back_populates="league", cascade="all, delete-orphan"
@@ -220,6 +237,7 @@ class Team(db.Model):
     short_code = db.Column(db.String(10), nullable=False)
     logo_url = db.Column(db.String(255), nullable=True)
     league_id = db.Column(db.Integer, db.ForeignKey("leagues.id"), nullable=False)
+    external_id = db.Column(db.Integer, unique=True, nullable=True)  # football-data.org team ID
 
     league = db.relationship("League", back_populates="teams")
     home_matches = db.relationship(
@@ -250,6 +268,7 @@ class Match(db.Model):
     home_score = db.Column(db.Integer, nullable=True)
     away_score = db.Column(db.Integer, nullable=True)
     minute = db.Column(db.String(10), nullable=True)
+    external_id = db.Column(db.Integer, unique=True, nullable=True)  # football-data.org match ID
 
     league = db.relationship("League", back_populates="matches")
     home_team = db.relationship(

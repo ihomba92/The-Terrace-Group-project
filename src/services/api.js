@@ -84,4 +84,16 @@ export const commentsApi = {
   delete: (commentId) => api.delete(`/comments/${commentId}`),
 };
 
+// Sports Data Endpoints
+export const leaguesApi = {
+  getAll: () => api.get("/leagues"),
+  getById: (id) => api.get(`/leagues/${id}`),
+};
+
+export const matchesApi = {
+  getAll: (params) => api.get("/matches", { params }),
+  getById: (id) => api.get(`/matches/${id}`),
+  getLive: (id) => api.get(`/matches/${id}/live`),
+};
+
 export default api;
