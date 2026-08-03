@@ -5,7 +5,6 @@ export {
   articles,
   reactions,
   currentUser,
-  table,
+  leagues,
   liveMatch,
-  profile,
 } from "./data";

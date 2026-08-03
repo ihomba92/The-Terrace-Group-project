@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Screen, Header } from "../components/UI";
 import BottomNav from "../components/BottomNav";
-import { articles as mockArticles, users as mockUsers } from "../data";
 import api from "../api/client";
 import { mapComment } from "../api/mappers";
 import { useAuth } from "../context/AuthContext";
@@ -41,16 +41,6 @@ export default function MyComments() {
     };
   }, [userId]);
 
-  const resolveArticle = (articleId) => {
-    const found = mockArticles.find((a) => a.id === articleId);
-    return found ? found.title : `Article #${articleId}`;
-  };
-
-  const resolveUser = (userId) => {
-    const found = mockUsers.find((u) => u.id === userId);
-    return found ? found : { name: user?.username || "You", avatar: "/images/default-avatar.png" };
-  };
-
   if (loading) {
     return (
       <Screen sidebar nav>
@@ -74,34 +64,36 @@ export default function MyComments() {
           </p>
         ) : (
           <ul className="space-y-4">
-            {comments.map((c) => {
-              const author = resolveUser(c.author?.id || userId);
-              return (
-                <li key={c.id} className="p-4 border border-black/10 dark:border-white/10 rounded-card">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={author.avatar || "/images/default-avatar.png"}
-                      alt=""
-                      className="w-8 h-8 rounded-full object-cover bg-terracing/30"
-                    />
-                    <span className="font-display font-semibold uppercase text-sm tracking-wide text-night-pitch dark:text-floodlight">
-                      {author.name || "You"}
-                    </span>
-                    <span className="font-mono text-[11px] text-terracing/60 dark:text-floodlight/50">
-                      {c.time || "5 Minutes Ago"}
-                    </span>
-                  </div>
+            {comments.map((c) => (
+              <li key={c.id} className="p-4 border border-black/10 dark:border-white/10 rounded-card">
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/images/default-avatar.png"
+                    alt=""
+                    className="w-8 h-8 rounded-full object-cover bg-terracing/30"
+                  />
+                  <span className="font-display font-semibold uppercase text-sm tracking-wide text-night-pitch dark:text-floodlight">
+                    {c.author.username}
+                  </span>
+                  <span className="font-mono text-[11px] text-terracing/60 dark:text-floodlight/50">
+                    {c.time ? new Date(c.time).toLocaleDateString() : ""}
+                  </span>
+                </div>
 
-                  <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.06em] text-terracing/60 dark:text-floodlight/50">
-                    on &ldquo;{resolveArticle(c.article_id)}&rdquo;
-                  </p>
+                {c.articleId && (
+                  <Link
+                    to={`/articles/${c.articleId}`}
+                    className="mt-2 block font-mono text-[11px] uppercase tracking-[0.06em] text-terracing/60 dark:text-floodlight/50 hover:text-black dark:hover:text-white"
+                  >
+                    on &ldquo;{c.articleTitle || `Article #${c.articleId}`}&rdquo;
+                  </Link>
+                )}
 
-                  <p className="mt-2 text-sm leading-relaxed text-night-pitch dark:text-floodlight/80">
-                    {c.body}
-                  </p>
-                </li>
-              );
-            })}
+                <p className="mt-2 text-sm leading-relaxed text-night-pitch dark:text-floodlight/80">
+                  {c.body}
+                </p>
+              </li>
+            ))}
           </ul>
         )}
       </div>

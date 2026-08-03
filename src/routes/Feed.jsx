@@ -5,25 +5,25 @@ import BottomNav from "../components/BottomNav";
 import ArticleCard from "../components/ArticleCard";
 import { Scoreboard } from "../components/Scoreboard";
 import { Skeleton } from "../components/Skeleton";
-import { liveMatch, categories } from "../data";
-import api from "../api/client";
+import { categories } from "../data";
+import api, { matchesApi } from "../api/client";
 import { mapArticle } from "../api/mappers";
 
 const filters = ["For You", "Match Reports", "Fan Reactions", "Following"];
 
 export default function Feed() {
   const [articles, setArticles] = useState([]);
+  const [liveMatch, setLiveMatch] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // 1. Read query parameters from the URL
   const [searchParams] = useSearchParams();
-  const selectedCategory = searchParams.get("category"); // e.g. "La Liga" or null
+  const selectedCategory = searchParams.get("category");
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
-    const fetchArticles = async () => {
+    const fetchData = async () => {
       try {
         let categoryId = null;
         if (selectedCategory) {
@@ -46,35 +46,47 @@ export default function Feed() {
           ? `/articles?category_id=${categoryId}`
           : "/articles";
 
-        const res = await api.get(endpoint);
+        // Fetch articles and live matches concurrently using the api client
+        const [articlesRes, matchRes] = await Promise.allSettled([
+          api.get(endpoint),
+          matchesApi.getAll({ status: "LIVE" }).catch(() => null)
+        ]);
+
         if (!cancelled) {
-          const items = Array.isArray(res.data)
-            ? res.data
-            : (res.data?.articles || []);
-          setArticles(items.map(mapArticle));
+          if (articlesRes.status === "fulfilled") {
+            const items = Array.isArray(articlesRes.value.data)
+              ? articlesRes.value.data
+              : (articlesRes.value.data?.articles || []);
+            setArticles(items.map(mapArticle));
+          }
+
+          if (matchRes.status === "fulfilled" && matchRes.value) {
+            const matchData = matchRes.value.data;
+            const activeMatch = Array.isArray(matchData) ? matchData[0] : matchData;
+            setLiveMatch(activeMatch || null);
+          }
+
           setLoading(false);
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to fetch articles:", err);
+          console.error("Failed to fetch feed data:", err);
           setArticles([]);
           setLoading(false);
         }
       }
     };
 
-    fetchArticles();
+    fetchData();
     return () => {
       cancelled = true;
     };
-  }, [selectedCategory]); // 3. Re-run effect whenever the category query parameter changes
+  }, [selectedCategory]);
 
   return (
     <Screen sidebar nav>
-      {/* Dynamically update header title if a category is selected */}
       <Header title={selectedCategory ? selectedCategory : "Your Feed"} />
 
-      {/* filter chips — hover inverts, no rounded-full pills */}
       <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 lg:px-8 py-3 border-b border-black/10 dark:border-white/10">
         {filters.map((f, i) => (
           <button

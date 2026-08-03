@@ -10,12 +10,11 @@ import { computeStandings } from "../utils/standings";
 import { externalNewsApi } from "../services/api";
 import { mapArticle } from "../api/mappers";
 
-export default function HomeFeed() {
+export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [standings, setStandings] = useState([]);
-
 
   // Re-fetch news whenever the active category changes
   useEffect(() => {
@@ -39,7 +38,18 @@ export default function HomeFeed() {
       .catch((err) => {
         if (!cancelled) {
           console.error("Failed to fetch articles:", err);
-          setArticles([]);
+          
+          // Check if rate-limited (429)
+          if (err.response?.status === 429) {
+            setArticles([{
+              id: "rate-limit",
+              title: "Rate Limit Exceeded",
+              description: "You've made too many requests. Please wait a moment before trying again.",
+            }]);
+          } else {
+            setArticles([]);
+          }
+          
           setLoading(false);
         }
       });
@@ -54,22 +64,23 @@ export default function HomeFeed() {
     [],
   );
 
-useEffect(() => {
-  leaguesApi
-    .getAll()
-    .then((res) => {
-      const leagues = res.data?.leagues || [];
-      // Default to the first league (adjust if you want a specific one, e.g. Premier League)
-      const primaryLeague = leagues[0];
-      if (primaryLeague) {
-        setStandings(computeStandings(primaryLeague));
-      }
-    })
-    .catch((err) => {
-      console.error("Failed to fetch leagues:", err);
-      setStandings([]);
-    });
-}, []);
+  useEffect(() => {
+    leaguesApi
+      .getAll()
+      .then((res) => {
+        const leagues = res.data?.leagues || [];
+        // Default to the first league (adjust if you want a specific one, e.g. Premier League)
+        const primaryLeague = leagues[0];
+        if (primaryLeague) {
+          setStandings(computeStandings(primaryLeague));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch leagues:", err);
+        setStandings([]);
+      });
+  }, []);
+
   return (
     <Screen sidebar nav>
       <Header title="The Terrace" />
@@ -118,14 +129,14 @@ useEffect(() => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-            {articles.map((a) => (
-              <ArticleCard key={a.id} article={a} />
+            {articles.map((a, index) => (
+              <ArticleCard key={a.id || index} article={a} />
             ))}
           </div>
         )}
 
         {/* League Table Section */}
-          <section className="py-6">
+        <section className="py-6">
           <h2 className="font-display font-bold uppercase text-lg tracking-wide text-night-pitch dark:text-floodlight mb-3">
             League Table
           </h2>
