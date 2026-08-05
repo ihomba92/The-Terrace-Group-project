@@ -15,7 +15,8 @@ export default function Feed() {
   const [articles, setArticles] = useState([]);
   const [liveMatch, setLiveMatch] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+  const [activeFilter, setActiveFilter] = useState(filters[0]);
+
   const [searchParams] = useSearchParams();
   const selectedCategory = searchParams.get("category");
 
@@ -46,7 +47,6 @@ export default function Feed() {
           ? `/articles?category_id=${categoryId}`
           : "/articles";
 
-        // Fetch articles and live matches concurrently using the api client
         const [articlesRes, matchRes] = await Promise.allSettled([
           api.get(endpoint),
           matchesApi.getAll({ status: "LIVE" }).catch(() => null)
@@ -87,24 +87,29 @@ export default function Feed() {
     <Screen sidebar nav>
       <Header title={selectedCategory ? selectedCategory : "Your Feed"} />
 
+      {/* Same pill treatment as Home's category filter — amber-live marks the active one */}
       <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 lg:px-8 py-3 border-b border-black/10 dark:border-white/10">
-        {filters.map((f, i) => (
-          <button
-            key={f}
-            className={
-              "shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-card border transition-colors duration-100 active:translate-y-[2px] " +
-              (i === 0
-                ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
-                : "bg-transparent text-terracing/70 dark:text-floodlight/50 hover:text-black dark:hover:text-white border-black/10 dark:border-white/10")
-            }>
-            {f}
-          </button>
-        ))}
+        {filters.map((f) => {
+          const isActive = f === activeFilter;
+          return (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={
+                "shrink-0 font-mono text-[11px] font-bold uppercase tracking-[0.1em] px-3.5 py-1.5 rounded-full border-2 transition-all duration-150 active:translate-y-[1px] " +
+                (isActive
+                  ? "bg-amber-live text-night-pitch border-amber-live shadow-[0_2px_0_rgba(0,0,0,0.25)]"
+                  : "border-black/10 dark:border-white/15 text-terracing/70 dark:text-floodlight/50 hover:border-amber-live hover:text-night-pitch dark:hover:text-floodlight")
+              }>
+              {f}
+            </button>
+          );
+        })}
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
         <div className="pt-4">
-          <Scoreboard match={liveMatch} />
+          <Scoreboard match={liveMatch} loading={loading && !liveMatch} />
         </div>
 
         {loading ? (

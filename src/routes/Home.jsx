@@ -10,18 +10,43 @@ import { computeStandings } from "../utils/standings";
 import { externalNewsApi } from "../services/api";
 import { mapArticle } from "../api/mappers";
 
+// Scoreboard-style scrolling ticker — the page's signature element
+
+function TickerTape({ items }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="relative overflow-hidden bg-night-pitch border-y border-amber-live/30">
+      <div className="flex whitespace-nowrap animate-[ticker_28s_linear_infinite] hover:[animation-play-state:paused]">
+        {[...items, ...items].map((t, i) => (
+          <span
+            key={i}
+            className="font-mono text-[11px] tracking-[0.12em] uppercase text-amber-live px-6 py-2 shrink-0"
+          >
+            <span className="text-red-600 mr-2">●</span>
+            {t}
+          </span>
+        ))}
+      </div>
+      <style>{`
+        @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-\\[ticker_28s_linear_infinite\\] { animation: none; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [standings, setStandings] = useState([]);
 
-  // Re-fetch news whenever the active category changes
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
-    // If "ALL" is selected, default to "football", otherwise use the category name
     const searchQuery = activeCategory === "ALL" ? "football" : activeCategory;
 
     externalNewsApi
@@ -38,8 +63,6 @@ export default function Home() {
       .catch((err) => {
         if (!cancelled) {
           console.error("Failed to fetch articles:", err);
-          
-          // Check if rate-limited (429)
           if (err.response?.status === 429) {
             setArticles([{
               id: "rate-limit",
@@ -49,7 +72,6 @@ export default function Home() {
           } else {
             setArticles([]);
           }
-          
           setLoading(false);
         }
       });
@@ -57,7 +79,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [activeCategory]); // Triggers a new fetch when user clicks different category buttons
+  }, [activeCategory]);
 
   const categoryNames = useMemo(
     () => ["ALL", ...(categories || []).map((c) => c.name)],
@@ -69,7 +91,6 @@ export default function Home() {
       .getAll()
       .then((res) => {
         const leagues = res.data?.leagues || [];
-        // Default to the first league (adjust if you want a specific one, e.g. Premier League)
         const primaryLeague = leagues[0];
         if (primaryLeague) {
           setStandings(computeStandings(primaryLeague));
@@ -81,13 +102,20 @@ export default function Home() {
       });
   }, []);
 
+  const tickerHeadlines = useMemo(
+    () => articles.slice(0, 6).map((a) => a.title).filter(Boolean),
+    [articles],
+  );
+
   return (
     <Screen sidebar nav>
       <Header title="The Terrace" />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
-        {/* Category Filter Pills */}
-        <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 pb-3 border-b border-black/10 dark:border-white/10 mb-6">
+      <TickerTape items={tickerHeadlines} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full bg-[#F5F3EC] dark:bg-[#0B1F17]">
+        {/* Category Filter Pills — styled like matchday squad-number tabs */}
+        <div className="flex gap-2 overflow-x-auto px-1 pb-3 mb-6 border-b-2 border-[#C9C2B4]/40 dark:border-[#E8A33D]/15">
           {categoryNames.map((name) => {
             const isActive = activeCategory === name;
             return (
@@ -95,11 +123,12 @@ export default function Home() {
                 key={name}
                 onClick={() => setActiveCategory(name)}
                 className={
-                  "shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-card border transition-colors duration-100 active:translate-y-[2px] " +
+                  "shrink-0 font-mono text-[11px] font-bold uppercase tracking-[0.1em] px-3.5 py-1.5 rounded-full border-2 transition-all duration-150 active:translate-y-[1px] " +
                   (isActive
-                    ? "bg-black text-white dark:bg-white dark:text-black"
-                    : "border-black/10 dark:border-white/10 text-night-pitch dark:text-floodlight/80 hover:text-black dark:hover:text-white")
-                }>
+                    ? "bg-[#E8A33D] text-[#0B1F17] border-[#E8A33D] shadow-[0_2px_0_rgba(0,0,0,0.25)]"
+                    : "border-[#C9C2B4]/50 text-[#0B1F17]/70 dark:text-[#F5F3EC]/70 dark:border-[#F5F3EC]/15 hover:border-[#E8A33D] hover:text-[#0B1F17] dark:hover:text-[#F5F3EC]")
+                }
+              >
                 {name}
               </button>
             );
@@ -112,9 +141,10 @@ export default function Home() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex flex-col border border-black/10 dark:border-white/10 rounded-card overflow-hidden">
+                className="flex flex-col border-2 border-[#C9C2B4]/30 dark:border-[#F5F3EC]/10 rounded-xl overflow-hidden bg-white dark:bg-[#0B1F17]"
+              >
                 <Skeleton className="w-full h-40 rounded-none" />
-                <div className="px-4 py-4 flex flex-col gap-3 flex-grow bg-white/80 dark:bg-terracing/40">
+                <div className="px-4 py-4 flex flex-col gap-3 flex-grow">
                   <Skeleton className="w-16 h-4" />
                   <Skeleton className="w-full h-6" />
                   <Skeleton className="w-3/4 h-4" />
@@ -124,7 +154,7 @@ export default function Home() {
             ))}
           </div>
         ) : articles.length === 0 ? (
-          <div className="py-12 text-center font-mono text-sm text-terracing/60 dark:text-floodlight/50 border border-black/10 dark:border-white/10 rounded-card">
+          <div className="py-14 text-center font-mono text-sm uppercase tracking-wide text-[#0B1F17]/50 dark:text-[#F5F3EC]/40 border-2 border-dashed border-[#C9C2B4]/50 dark:border-[#F5F3EC]/15 rounded-xl">
             No articles match this filter.
           </div>
         ) : (
@@ -135,19 +165,24 @@ export default function Home() {
           </div>
         )}
 
-        {/* League Table Section */}
-        <section className="py-6">
-          <h2 className="font-display font-bold uppercase text-lg tracking-wide text-night-pitch dark:text-floodlight mb-3">
+        {/* League Table Section — framed like a real scoreboard */}
+     // League Table section — dropped the card wrapper, kept only the heading treatment
+      // (the gold divider is a section label, not row color-coding, so it stays)
+      <section className="py-8">
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="font-display font-bold uppercase text-2xl tracking-wide text-night-pitch dark:text-floodlight">
             League Table
           </h2>
-          {standings.length > 0 ? (
-            <LeagueTable rows={standings} />
-          ) : (
-            <p className="font-mono text-sm text-terracing/60 dark:text-floodlight/50">
-              No standings available yet.
-            </p>
-          )}
-        </section>
+          <span className="h-[3px] flex-1 bg-amber-live" />
+        </div>
+        {standings.length > 0 ? (
+          <LeagueTable rows={standings} />
+        ) : (
+          <p className="font-mono text-sm text-terracing/60 dark:text-floodlight/50">
+            No standings available yet.
+          </p>
+        )}
+      </section>
       </main>
 
       <BottomNav active="home" />

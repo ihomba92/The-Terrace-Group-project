@@ -144,8 +144,8 @@ export default function Admin() {
                     <IconCheck className="w-4 h-4" />
                   </button>
                   <button
-                    className="px-2 py-1 border border-black/10 dark:border-white/10 rounded-card font-mono text-[10px] uppercase tracking-[0.08em] text-terracing/60 dark:text-floodlight/50
-                    hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black
+                    className="px-2 py-1 border border-red-500/20 rounded-card font-mono text-[10px] uppercase tracking-[0.08em] text-red-500/70
+                    hover:bg-red-500 hover:text-white
                     transition-colors duration-100 active:translate-y-[2px]"
                   >
                     Reject

@@ -9,47 +9,16 @@ import {
   IconBookmark,
 } from "./Icons";
 
-// Mobile bottom bar — includes all primary routes so users can navigate
-// anywhere from the mobile nav. Feed and Categories are now primary
-// mobile nav items alongside Home, My Comments, Bookmarks, and Profile.
 const mobileItems = [
   { key: "home", label: "Home", to: "/", Icon: IconHome },
   { key: "feed", label: "Feed", to: "/feed", Icon: IconFeed },
   { key: "categories", label: "Browse", to: "/categories", Icon: IconGrid },
-  {
-    key: "comments",
-    label: "My Comments",
-    to: "/my-comments",
-    Icon: IconComment,
-  },
-  {
-    key: "bookmarks",
-    label: "Bookmarks",
-    to: "/bookmarks",
-    Icon: IconBookmark,
-  },
+  { key: "comments", label: "My Comments", to: "/my-comments", Icon: IconComment },
+  { key: "bookmarks", label: "Bookmarks", to: "/bookmarks", Icon: IconBookmark },
   { key: "profile", label: "Profile", to: "/user-profile", Icon: IconUser },
 ];
 
-// Desktop sidebar has room, so it keeps every primary route including Feed and Categories.
-const desktopItems = [
-  { key: "home", label: "Home", to: "/", Icon: IconHome },
-  { key: "feed", label: "Feed", to: "/feed", Icon: IconFeed },
-  { key: "categories", label: "Browse", to: "/categories", Icon: IconGrid },
-  {
-    key: "comments",
-    label: "My Comments",
-    to: "/my-comments",
-    Icon: IconComment,
-  },
-  {
-    key: "bookmarks",
-    label: "Bookmarks",
-    to: "/bookmarks",
-    Icon: IconBookmark,
-  },
-  { key: "profile", label: "Profile", to: "/user-profile", Icon: IconUser },
-];
+const desktopItems = mobileItems;
 
 export default function BottomNav({ active }) {
   const { logout } = useAuth();
@@ -62,8 +31,7 @@ export default function BottomNav({ active }) {
 
   return (
     <>
-      {/* Mobile bottom navigation — fixed, not sticky, so it stays pinned to the real viewport
-          regardless of scroll/container quirks (matches how Instagram/Twitter etc. do it). */}
+      {/* Mobile bottom navigation */}
       <nav className="lg:hidden fixed inset-x-0 bottom-0 z-10 bg-floodlight/95 dark:bg-night-pitch/95 border-t border-black/10 dark:border-white/10">
         <div className="flex items-stretch justify-around">
           {mobileItems.map(({ key, label, to, Icon }) => {
@@ -73,11 +41,15 @@ export default function BottomNav({ active }) {
                 key={key}
                 to={to}
                 className={
-                  "flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors duration-100 " +
+                  "relative flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors duration-100 " +
                   (isActive
                     ? "text-night-pitch dark:text-floodlight"
-                    : "text-terracing/60 dark:text-floodlight/50 hover:text-black dark:hover:text-white")
+                    : "text-terracing/60 dark:text-floodlight/50 hover:text-night-pitch dark:hover:text-floodlight")
                 }>
+                {/* "you are here" dot — same accent Scoreboard uses for live state */}
+                {isActive && (
+                  <span className="absolute top-1.5 w-1 h-1 rounded-full bg-amber-live" aria-hidden="true" />
+                )}
                 <Icon className="w-6 h-6" />
                 <span className="font-mono text-[10px] uppercase tracking-[0.08em]">
                   {label}
@@ -108,10 +80,10 @@ export default function BottomNav({ active }) {
                 key={key}
                 to={to}
                 className={
-                  "flex items-center gap-3 px-4 py-3 rounded-card transition-colors duration-100 " +
+                  "relative flex items-center gap-3 pl-4 pr-4 py-3 rounded-card border-l-2 transition-colors duration-100 " +
                   (isActive
-                    ? "bg-night-pitch text-floodlight dark:bg-floodlight dark:text-night-pitch"
-                    : "text-terracing/60 dark:text-floodlight/50 hover:text-black dark:hover:text-white")
+                    ? "bg-night-pitch text-floodlight dark:bg-floodlight dark:text-night-pitch border-l-amber-live"
+                    : "border-l-transparent text-terracing/60 dark:text-floodlight/50 hover:text-night-pitch dark:hover:text-floodlight")
                 }>
                 <Icon className="w-5 h-5" />
                 <span className="font-display font-semibold uppercase tracking-wide text-sm">
