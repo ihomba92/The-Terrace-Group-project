@@ -171,14 +171,16 @@ def create_app():
         return jsonify({"error": "Internal server error"}), 500
 
     # INITIALIZE CORS GLOBALLY
+  # INITIALIZE CORS GLOBALLY (allowing all vercel preview domains dynamically)
     cors.init_app(
         app,
         supports_credentials=True,
         origins=[
-            "http://localhost:5173", 
-            "https://the-terrace-group-project-ruddy.vercel.app", 
-            "https://the-terrace-group-project-ijlixgczf-the-terrace-group.vercel.app",
-            "https://the-terrace-group-project.onrender.com"
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://the-terrace-group-project-ruddy.vercel.app",
+            "https://the-terrace-group-project.onrender.com",
+            r"^https://the-terrace-group-project.*\.vercel\.app$"
         ],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
