@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Screen, Header } from "../components/UI";
 import BottomNav from "../components/BottomNav";
@@ -10,6 +10,15 @@ import api, { matchesApi } from "../api/client";
 import { mapArticle } from "../api/mappers";
 
 const filters = ["For You", "Match Reports", "Fan Reactions", "Following"];
+
+// Loose match against article.kind so this survives minor naming drift
+// from the backend (e.g. "MATCH_REPORT" vs "Match Report" vs "match-report").
+const normalize = (str) => (str || "").toUpperCase().replace(/[^A-Z]/g, "");
+
+const FILTER_KIND_ALIASES = {
+  "Match Reports": ["MATCHREPORT", "MATCHREPORTS", "REPORT"],
+  "Fan Reactions": ["FANREACTION", "FANREACTIONS", "REACTION"],
+};
 
 export default function Feed() {
   const [articles, setArticles] = useState([]);
@@ -83,11 +92,24 @@ export default function Feed() {
     };
   }, [selectedCategory]);
 
+  const filteredArticles = useMemo(() => {
+    if (activeFilter === "For You") return articles;
+
+    if (activeFilter === "Following") {
+      // Needs a real "isFollowing" flag from the API — mapArticle doesn't
+      // set one yet, so this correctly returns empty until that's wired up
+      // rather than silently showing everything.
+      return articles.filter((a) => a.isFollowing);
+    }
+
+    const aliases = FILTER_KIND_ALIASES[activeFilter] || [];
+    return articles.filter((a) => aliases.includes(normalize(a.kind)));
+  }, [articles, activeFilter]);
+
   return (
     <Screen sidebar nav>
       <Header title={selectedCategory ? selectedCategory : "Your Feed"} />
 
-      {/* Same pill treatment as Home's category filter — amber-live marks the active one */}
       <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 lg:px-8 py-3 border-b border-black/10 dark:border-white/10">
         {filters.map((f) => {
           const isActive = f === activeFilter;
@@ -126,9 +148,15 @@ export default function Feed() {
               </div>
             ))}
           </div>
+        ) : filteredArticles.length === 0 ? (
+          <div className="mt-6 py-14 text-center font-mono text-sm uppercase tracking-wide text-terracing/50 dark:text-floodlight/40 border-2 border-dashed border-black/10 dark:border-white/10 rounded-card">
+            {activeFilter === "Following"
+              ? "Follow authors to see their posts here."
+              : `No ${activeFilter.toLowerCase()} to show right now.`}
+          </div>
         ) : (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-            {articles.map((a) => (
+            {filteredArticles.map((a) => (
               <ArticleCard key={a.id} article={a} />
             ))}
           </div>

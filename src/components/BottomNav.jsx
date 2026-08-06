@@ -7,9 +7,11 @@ import {
   IconUser,
   IconComment,
   IconBookmark,
+  IconEdit,
+  IconShield,
 } from "./Icons";
 
-const mobileItems = [
+const baseItems = [
   { key: "home", label: "Home", to: "/", Icon: IconHome },
   { key: "feed", label: "Feed", to: "/feed", Icon: IconFeed },
   { key: "categories", label: "Browse", to: "/categories", Icon: IconGrid },
@@ -18,11 +20,34 @@ const mobileItems = [
   { key: "profile", label: "Profile", to: "/user-profile", Icon: IconUser },
 ];
 
-const desktopItems = mobileItems;
+// Role → the one extra nav item that role gets, inserted just before Profile.
+// Deliberately exclusive: admin gets the admin link, author gets the author
+// dashboard, plain "user" gets neither — matches how Admin.jsx already
+// gates page access, so nav visibility and page access agree with each other.
+const ROLE_NAV_ITEM = {
+  admin: { key: "admin", label: "Admin", to: "/admin-dashboard", Icon: IconShield },
+  author: { key: "my-articles", label: "My Articles", to: "/my-articles", Icon: IconEdit },
+};
+
+function buildItems(role) {
+  const extra = ROLE_NAV_ITEM[role];
+  if (!extra) return baseItems;
+
+  // Insert right before "profile" so account-related items stay grouped together
+  const profileIndex = baseItems.findIndex((i) => i.key === "profile");
+  return [
+    ...baseItems.slice(0, profileIndex),
+    extra,
+    ...baseItems.slice(profileIndex),
+  ];
+}
 
 export default function BottomNav({ active }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const userRole = user?.profile?.role || user?.role;
+
+  const items = buildItems(userRole);
 
   const handleLogout = () => {
     logout();
@@ -34,7 +59,7 @@ export default function BottomNav({ active }) {
       {/* Mobile bottom navigation */}
       <nav className="lg:hidden fixed inset-x-0 bottom-0 z-10 bg-floodlight/95 dark:bg-night-pitch/95 border-t border-black/10 dark:border-white/10">
         <div className="flex items-stretch justify-around">
-          {mobileItems.map(({ key, label, to, Icon }) => {
+          {items.map(({ key, label, to, Icon }) => {
             const isActive = key === active;
             return (
               <Link
@@ -73,7 +98,7 @@ export default function BottomNav({ active }) {
           </span>
         </div>
         <div className="flex-1 space-y-2">
-          {desktopItems.map(({ key, label, to, Icon }) => {
+          {items.map(({ key, label, to, Icon }) => {
             const isActive = key === active;
             return (
               <Link

@@ -95,6 +95,12 @@ class Article(db.Model):
     category_id = db.Column(
         db.Integer, db.ForeignKey("categories.category_id"), nullable=False
     )
+    status = db.Column(
+        db.Enum("PENDING", "PUBLISHED", "REJECTED", name="article_status"),
+        nullable=False,
+        default="PENDING",
+    )
+    rejection_reason = db.Column(db.String(500), nullable=True)
     published_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(

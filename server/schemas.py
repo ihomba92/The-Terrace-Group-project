@@ -151,12 +151,13 @@ class ArticleSchema(Schema):
     cover_image = fields.Str(dump_default="https://placeholder.com")
     view_count = fields.Int(dump_only=True)
     likes_count = fields.Int(dump_only=True)
+    status = fields.Str(dump_default="PENDING")  # writable — PostArticle needs to set this on resubmit
+    rejection_reason = fields.Str(allow_none=True, dump_only=True)  # admin sets this via its own endpoint, not through this schema
     published_at = fields.DateTime(dump_only=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 
     # Relationships & Foreign Keys
-    # author_id is dump_only because user identity is extracted from JWT in Resource methods
     author_id = fields.Int(dump_only=True)
     category_id = fields.Int(required=True)
     author = fields.Nested(
@@ -174,14 +175,14 @@ class ArticleSchema(Schema):
             errors["title"] = ["Title cannot exceed 100 characters"]
         if "content" in data and len(data["content"]) > 2000:
             errors["content"] = ["Content cannot exceed 2000 characters"]
+        if "status" in data and data["status"] not in ["PENDING", "PUBLISHED", "REJECTED"]:
+            errors["status"] = ["Status must be one of: PENDING, PUBLISHED, REJECTED"]
         if errors:
             raise ValidationError(errors)
 
 
 article_schema = ArticleSchema()
 articles_schema = ArticleSchema(many=True)
-
-
 # 5. REACTION SCHEMAS
 
 

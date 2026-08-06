@@ -166,14 +166,13 @@ export default function Home() {
         )}
 
         {/* League Table Section — framed like a real scoreboard */}
-     // League Table section — dropped the card wrapper, kept only the heading treatment
-      // (the gold divider is a section label, not row color-coding, so it stays)
+ 
       <section className="py-8">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="mb-4">
+          <span className="block h-[3px] w-full bg-amber-live mb-3" />
           <h2 className="font-display font-bold uppercase text-2xl tracking-wide text-night-pitch dark:text-floodlight">
             League Table
           </h2>
-          <span className="h-[3px] flex-1 bg-amber-live" />
         </div>
         {standings.length > 0 ? (
           <LeagueTable rows={standings} />

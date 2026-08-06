@@ -118,3 +118,15 @@ export function IconMoon({ className = "w-5 h-5" }) {
     </svg>
   );
 }
+
+// NEW — for the Admin nav item. Geometric pentagon shield (straight edges,
+// mitered point), consistent with the rest of this set — deliberately not
+// the soft rounded-shoulder shield glyph most icon packs default to.
+export function IconShield({ className = "w-6 h-6" }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M12 3 19 6v6c0 5-3 8-7 9-4-1-7-4-7-9V6z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
