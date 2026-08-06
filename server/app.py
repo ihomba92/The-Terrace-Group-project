@@ -174,11 +174,15 @@ def create_app():
     cors.init_app(
         app,
         supports_credentials=True,
-        origins=["http://localhost:5173", "https://the-terrace-group-project-ruddy.vercel.app", "https://the-terrace-group-project.onrender.com"],
+        origins=[
+            "http://localhost:5173", 
+            "https://the-terrace-group-project-ruddy.vercel.app", 
+            "https://the-terrace-group-project-ijlixgczf-the-terrace-group.vercel.app",
+            "https://the-terrace-group-project.onrender.com"
+        ],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
-
     # INITIALIZE EXTENSIONS WITH APP
     db.init_app(app)
     bcrypt.init_app(app)
