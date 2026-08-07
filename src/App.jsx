@@ -9,6 +9,7 @@ import Categories from "./routes/Categories";
 import ArticleDetail from "./routes/ArticleDetail";
 import UserProfile from "./routes/UserProfile";
 import AdminDashboard from "./routes/AdminDashboard";
+import AuthorDashboard from "./routes/AuthorDashboard";
 import PostArticle from "./routes/PostArticle";
 import MyComments from "./routes/MyComments";
 import Bookmarks from "./routes/Bookmarks";
@@ -58,6 +59,31 @@ function AdminRoute({ children }) {
   return children;
 }
 
+// Mirrors AdminRoute — role must be exactly "author". Admins are
+// deliberately NOT let in here even though they can edit any article
+// via ArticleByIDResource; this route is specifically the author's own
+// dashboard view, not a general moderation tool.
+function AuthorRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <span className="font-mono text-sm text-terracing/60 dark:text-floodlight/50">
+          Loading...
+        </span>
+      </div>
+    );
+  }
+
+  const userRole = user?.profile?.role || user?.role;
+  if (!user || userRole !== "author") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 export default function App() {
   useEffect(() => {
     const stored = localStorage.getItem("theme");
@@ -89,6 +115,10 @@ export default function App() {
             <Route path="/my-comments" element={<ProtectedRoute><MyComments /></ProtectedRoute>} />
             <Route path="/bookmarks" element={<ProtectedRoute><Bookmarks /></ProtectedRoute>} />
             <Route path="/create-article" element={<ProtectedRoute><PostArticle /></ProtectedRoute>} />
+            <Route path="/edit-article/:id" element={<ProtectedRoute><PostArticle /></ProtectedRoute>} />
+
+            {/* Protected Author Routes */}
+            <Route path="/my-articles" element={<AuthorRoute><AuthorDashboard /></AuthorRoute>} />
 
             {/* Protected Admin Routes */}
             <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

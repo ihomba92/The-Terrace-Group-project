@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Screen, Header, Field, Button } from "../components/UI";
 import { IconArrowLeft } from "../components/Icons";
 import api from "../api/client";
@@ -8,10 +8,17 @@ import { mapCategory } from "../api/mappers";
 const kinds = ["Match Report", "Fan Reaction"];
 
 export default function PostArticle() {
+  const { id: articleId } = useParams(); // present only on /edit-article/:id
+  const isEditMode = Boolean(articleId);
+
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingArticle, setLoadingArticle] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // Tracked separately from the form so we know whether to send status
+  // back to PENDING on resubmit — only relevant if it was REJECTED.
+  const [originalStatus, setOriginalStatus] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -47,6 +54,37 @@ export default function PostArticle() {
     };
   }, []);
 
+  // Edit mode: load the existing article and prefill the form
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    let cancelled = false;
+    api
+      .get(`/articles/${articleId}`)
+      .then((res) => {
+        if (cancelled) return;
+        const a = res.data || {};
+        setForm({
+          title: a.title || "",
+          kind: kinds[0], // backend has no "kind" field to prefill from — see note below
+          category_id: a.category_id ? String(a.category_id) : "",
+          body: a.content || "",
+        });
+        setOriginalStatus(a.status || null);
+        setLoadingArticle(false);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to fetch article for editing:", err);
+          setError("Couldn't load this article for editing.");
+          setLoadingArticle(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, articleId]);
+
   const update = (key, value) => setForm({ ...form, [key]: value });
 
   const handleSubmit = async (e) => {
@@ -54,35 +92,82 @@ export default function PostArticle() {
     setError("");
     try {
       setSubmitting(true);
-      const payload = {
-        title: form.title,
-        content: form.body,
-        category_id: form.category_id ? Number(form.category_id) : undefined,
-        cover_image: "",
-      };
-      const res = await api.post("/articles", payload);
-      navigate(`/articles/${res.data.id}`);
+
+      if (isEditMode) {
+        const payload = {
+          title: form.title,
+          content: form.body,
+          category_id: form.category_id ? Number(form.category_id) : undefined,
+        };
+        // Only resubmitting a previously-rejected article moves it back
+        // into the moderation queue — editing a published article as an
+        // owner/admin shouldn't unpublish it.
+        if (originalStatus === "REJECTED") {
+          payload.status = "PENDING";
+        }
+        await api.patch(`/articles/${articleId}`, payload);
+        navigate(`/articles/${articleId}`);
+      } else {
+        const payload = {
+          title: form.title,
+          content: form.body,
+          category_id: form.category_id ? Number(form.category_id) : undefined,
+          cover_image: "",
+        };
+        const res = await api.post("/articles", payload);
+        navigate(`/articles/${res.data.id}`);
+      }
     } catch (err) {
-      console.error("Failed to create article:", err);
-      setError(err.response?.data?.message || "Failed to publish article.");
+      console.error(`Failed to ${isEditMode ? "update" : "create"} article:`, err);
+      setError(
+        err.response?.data?.message ||
+          `Failed to ${isEditMode ? "update" : "publish"} article.`
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (isEditMode && loadingArticle) {
+    return (
+      <Screen>
+        <Header
+          title="Edit Post"
+          left={
+            <Link
+              to="/my-articles"
+              className="text-night-pitch dark:text-floodlight block"
+              aria-label="Back">
+              <IconArrowLeft className="w-6 h-6" />
+            </Link>
+          }
+        />
+        <div className="px-4 py-12 text-center font-mono text-sm text-terracing/60 dark:text-floodlight/50">
+          Loading article...
+        </div>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <Header
-        title="New Post"
+        title={isEditMode ? "Edit Post" : "New Post"}
         left={
           <Link
-            to="/user-profile"
+            to={isEditMode ? "/my-articles" : "/user-profile"}
             className="text-night-pitch dark:text-floodlight block"
             aria-label="Back">
             <IconArrowLeft className="w-6 h-6" />
           </Link>
         }
       />
+
+      {isEditMode && originalStatus === "REJECTED" && (
+        <div className="mx-4 mt-4 px-3 py-2 rounded-card border border-amber-live/30 bg-amber-live/5 font-mono text-xs text-night-pitch dark:text-floodlight">
+          Resubmitting will send this back to the moderation queue for review.
+        </div>
+      )}
 
       <form className="px-4 py-5 flex flex-col gap-5" onSubmit={handleSubmit}>
         <div>
@@ -181,7 +266,7 @@ export default function PostArticle() {
           <Button
             type="submit"
             disabled={submitting || !form.title || !form.body || !form.category_id}>
-            Publish
+            {isEditMode ? "Resubmit" : "Publish"}
           </Button>
         </div>
       </form>

@@ -61,7 +61,6 @@ export default function Categories() {
             {fetchedCategories.map((c) => (
               <li key={c.name}>
                 <Link
-                  // UPDATED: Dynamically pass the category name as a query parameter
                   to={`/feed?category=${encodeURIComponent(c.name)}`}
                   className="flex items-center justify-between px-4 py-4 border-b border-black/10 dark:border-white/10 md:border-r md:last:border-r-0
                   text-night-pitch dark:text-floodlight hover:bg-black/5 dark:hover:bg-white/5
@@ -87,7 +86,8 @@ export default function Categories() {
               <li key={a.id}>
                 <Link
                   to={`/articles/${a.id}`}
-                  className="flex gap-3 items-start border border-black/10 dark:border-white/10 bg-white/80 dark:bg-terracing/40 rounded-card p-3">
+                  className="flex gap-3 items-start border border-black/10 dark:border-white/10 bg-white/80 dark:bg-terracing/40 rounded-card p-3
+                    transition-all duration-150 hover:border-amber-live/60 hover:-translate-y-0.5">
                   <span className="font-mono font-bold text-2xl text-terracing/60 dark:text-floodlight/50 tabular-nums leading-none">
                     {String(i + 1).padStart(2, "0")}
                   </span>

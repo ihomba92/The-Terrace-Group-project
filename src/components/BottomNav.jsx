@@ -7,53 +7,47 @@ import {
   IconUser,
   IconComment,
   IconBookmark,
+  IconEdit,
+  IconShield,
 } from "./Icons";
 
-// Mobile bottom bar — includes all primary routes so users can navigate
-// anywhere from the mobile nav. Feed and Categories are now primary
-// mobile nav items alongside Home, My Comments, Bookmarks, and Profile.
-const mobileItems = [
+const baseItems = [
   { key: "home", label: "Home", to: "/", Icon: IconHome },
   { key: "feed", label: "Feed", to: "/feed", Icon: IconFeed },
   { key: "categories", label: "Browse", to: "/categories", Icon: IconGrid },
-  {
-    key: "comments",
-    label: "My Comments",
-    to: "/my-comments",
-    Icon: IconComment,
-  },
-  {
-    key: "bookmarks",
-    label: "Bookmarks",
-    to: "/bookmarks",
-    Icon: IconBookmark,
-  },
+  { key: "comments", label: "My Comments", to: "/my-comments", Icon: IconComment },
+  { key: "bookmarks", label: "Bookmarks", to: "/bookmarks", Icon: IconBookmark },
   { key: "profile", label: "Profile", to: "/user-profile", Icon: IconUser },
 ];
 
-// Desktop sidebar has room, so it keeps every primary route including Feed and Categories.
-const desktopItems = [
-  { key: "home", label: "Home", to: "/", Icon: IconHome },
-  { key: "feed", label: "Feed", to: "/feed", Icon: IconFeed },
-  { key: "categories", label: "Browse", to: "/categories", Icon: IconGrid },
-  {
-    key: "comments",
-    label: "My Comments",
-    to: "/my-comments",
-    Icon: IconComment,
-  },
-  {
-    key: "bookmarks",
-    label: "Bookmarks",
-    to: "/bookmarks",
-    Icon: IconBookmark,
-  },
-  { key: "profile", label: "Profile", to: "/user-profile", Icon: IconUser },
-];
+// Role → the one extra nav item that role gets, inserted just before Profile.
+// Deliberately exclusive: admin gets the admin link, author gets the author
+// dashboard, plain "user" gets neither — matches how Admin.jsx already
+// gates page access, so nav visibility and page access agree with each other.
+const ROLE_NAV_ITEM = {
+  admin: { key: "admin", label: "Admin", to: "/admin-dashboard", Icon: IconShield },
+  author: { key: "my-articles", label: "My Articles", to: "/my-articles", Icon: IconEdit },
+};
+
+function buildItems(role) {
+  const extra = ROLE_NAV_ITEM[role];
+  if (!extra) return baseItems;
+
+  // Insert right before "profile" so account-related items stay grouped together
+  const profileIndex = baseItems.findIndex((i) => i.key === "profile");
+  return [
+    ...baseItems.slice(0, profileIndex),
+    extra,
+    ...baseItems.slice(profileIndex),
+  ];
+}
 
 export default function BottomNav({ active }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const userRole = user?.profile?.role || user?.role;
+
+  const items = buildItems(userRole);
 
   const handleLogout = () => {
     logout();
@@ -62,22 +56,25 @@ export default function BottomNav({ active }) {
 
   return (
     <>
-      {/* Mobile bottom navigation — fixed, not sticky, so it stays pinned to the real viewport
-          regardless of scroll/container quirks (matches how Instagram/Twitter etc. do it). */}
+      {/* Mobile bottom navigation */}
       <nav className="lg:hidden fixed inset-x-0 bottom-0 z-10 bg-floodlight/95 dark:bg-night-pitch/95 border-t border-black/10 dark:border-white/10">
         <div className="flex items-stretch justify-around">
-          {mobileItems.map(({ key, label, to, Icon }) => {
+          {items.map(({ key, label, to, Icon }) => {
             const isActive = key === active;
             return (
               <Link
                 key={key}
                 to={to}
                 className={
-                  "flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors duration-100 " +
+                  "relative flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors duration-100 " +
                   (isActive
                     ? "text-night-pitch dark:text-floodlight"
-                    : "text-terracing/60 dark:text-floodlight/50 hover:text-black dark:hover:text-white")
+                    : "text-terracing/60 dark:text-floodlight/50 hover:text-night-pitch dark:hover:text-floodlight")
                 }>
+                {/* "you are here" dot — same accent Scoreboard uses for live state */}
+                {isActive && (
+                  <span className="absolute top-1.5 w-1 h-1 rounded-full bg-amber-live" aria-hidden="true" />
+                )}
                 <Icon className="w-6 h-6" />
                 <span className="font-mono text-[10px] uppercase tracking-[0.08em]">
                   {label}
@@ -101,17 +98,17 @@ export default function BottomNav({ active }) {
           </span>
         </div>
         <div className="flex-1 space-y-2">
-          {desktopItems.map(({ key, label, to, Icon }) => {
+          {items.map(({ key, label, to, Icon }) => {
             const isActive = key === active;
             return (
               <Link
                 key={key}
                 to={to}
                 className={
-                  "flex items-center gap-3 px-4 py-3 rounded-card transition-colors duration-100 " +
+                  "relative flex items-center gap-3 pl-4 pr-4 py-3 rounded-card border-l-2 transition-colors duration-100 " +
                   (isActive
-                    ? "bg-night-pitch text-floodlight dark:bg-floodlight dark:text-night-pitch"
-                    : "text-terracing/60 dark:text-floodlight/50 hover:text-black dark:hover:text-white")
+                    ? "bg-night-pitch text-floodlight dark:bg-floodlight dark:text-night-pitch border-l-amber-live"
+                    : "border-l-transparent text-terracing/60 dark:text-floodlight/50 hover:text-night-pitch dark:hover:text-floodlight")
                 }>
                 <Icon className="w-5 h-5" />
                 <span className="font-display font-semibold uppercase tracking-wide text-sm">

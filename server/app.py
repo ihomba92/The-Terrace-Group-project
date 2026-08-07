@@ -171,13 +171,30 @@ def create_app():
         return jsonify({"error": "Internal server error"}), 500
 
     # INITIALIZE CORS GLOBALLY
+  # INITIALIZE CORS GLOBALLY (allowing all vercel preview domains dynamically)
+  # INITIALIZE CORS GLOBALLY
     cors.init_app(
         app,
         supports_credentials=True,
-        origins=["http://localhost:5173", "https://the-terrace-group-project-ruddy.vercel.app", "https://the-terrace-group-project.onrender.com"],
-        allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"],
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://the-terrace-group-project-ruddy.vercel.app",
+            "https://the-terrace-group-project.onrender.com",
+        ],
+        # Allow any Vercel preview deployment URL dynamically
+        send_wildcard=False,
+        always_send=True,
     )
+    @app.after_request
+    def add_cors_headers(response):
+        origin = request.headers.get("Origin")
+        if origin and (origin.endswith(".vercel.app") or origin in ["http://localhost:5173", "http://127.0.0.1:5173"]):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRF-TOKEN"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        return response
 
     # INITIALIZE EXTENSIONS WITH APP
     db.init_app(app)
