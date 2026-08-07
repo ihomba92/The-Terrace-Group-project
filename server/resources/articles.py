@@ -1,6 +1,11 @@
 from flask import make_response, request
 from flask_restful import Resource
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import (
+    jwt_required,
+    get_jwt_identity,
+    get_jwt,
+    verify_jwt_in_request,
+)
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 import bleach
@@ -22,9 +27,12 @@ except ImportError:
 
 # /articles
 class ArticlesResource(Resource):
-    # GET /articles - Public: Fetch all articles with pagination and optional category filter
+    # GET /articles - Public: only PUBLISHED articles.
+    # Admins can pass ?status=all|PENDING|PUBLISHED|REJECTED to see everything
+    # (used by AdminDashboard's moderation queue).
     def get(self):
         category_id = request.args.get("category_id")
+        status_param = request.args.get("status")
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
 
@@ -33,13 +41,26 @@ class ArticlesResource(Resource):
         if category_id:
             query = query.filter_by(category_id=category_id)
 
-        # Utilize Flask-SQLAlchemy built-in pagination
+        # Optional JWT check — endpoint stays public, but an authenticated
+        # admin gets elevated visibility via status_param.
+        is_admin = False
+        verify_jwt_in_request(optional=True)
+        if get_jwt_identity():
+            claims = get_jwt() or {}
+            is_admin = claims.get("role") == "admin"
+
+        if is_admin and status_param:
+            if status_param.upper() != "ALL":
+                query = query.filter_by(status=status_param.upper())
+            # status=all -> no filter, admin sees every status
+        else:
+            query = query.filter_by(status="PUBLISHED")
+
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         articles = pagination.items
 
         log.info(f"get_all_articles count={len(articles)} page={page} per_page={per_page}")
-        
-        # Return structured metadata alongside items
+
         return make_response({
             "articles": articles_schema.dump(articles),
             "total": pagination.total,
@@ -51,6 +72,7 @@ class ArticlesResource(Resource):
         }, 200)
 
     # POST /articles - Protected: Create a new article (Admin/Author only)
+    # New articles get status="PENDING" automatically from the model default.
     @role_required(["admin", "author"])
     def post(self):
         try:
@@ -150,6 +172,24 @@ class ArticleByIDResource(Resource):
             data = request.get_json() or {}
             data.pop("user_id", None)
 
+            # Non-admins may only move status to PENDING, and only from
+            # REJECTED — i.e. resubmitting their own rejected article for
+            # review. Everything else (self-publishing, un-rejecting into
+            # PUBLISHED, etc.) stays admin-only via the dedicated
+            # publish/reject endpoints.
+            requested_status = data.get("status")
+            is_resubmission = False
+            if requested_status is not None and user_role != "admin":
+                if requested_status.upper() != "PENDING" or article.status != "REJECTED":
+                    return make_response(
+                        {
+                            "status": 403,
+                            "message": "You can only resubmit a rejected article for review.",
+                        },
+                        403,
+                    )
+                is_resubmission = True
+
             validated_data = article_schema.load(data, partial=True)
 
             for key, value in validated_data.items():
@@ -157,6 +197,12 @@ class ArticleByIDResource(Resource):
                     if key in ["title", "content"] and isinstance(value, str):
                         value = bleach.clean(value, strip=True)
                     setattr(article, key, value)
+
+            # Resubmitting clears the old rejection so the moderation queue
+            # doesn't show a stale reason next to what's now new content.
+            if is_resubmission:
+                article.rejection_reason = None
+                article.published_at = None
 
             db.session.commit()
             return make_response(article_schema.dump(article), 200)
@@ -319,8 +365,7 @@ class NewsResource(Resource):
             query = request.args.get("q", "football")
             page = request.args.get("page", 1, type=int)
             per_page = request.args.get("per_page", 10, type=int)
-            
-            # Map category names to reliable search terms or fallback lists
+
             query_mapping = {
                 "la liga": "La Liga OR Real Madrid OR Barcelona",
                 "serie a": "Serie A OR Juventus OR AC Milan OR Inter Milan",
@@ -329,8 +374,7 @@ class NewsResource(Resource):
                 "champions league": "Champions League OR UEFA",
                 "english premier league": "Premier League OR Arsenal OR Chelsea OR Manchester United OR Liverpool"
             }
-            
-            # Apply mapping if it matches a known category (case-insensitive)
+
             search_term = query_mapping.get(query.lower(), query)
 
             params = {
@@ -360,9 +404,6 @@ class NewsResource(Resource):
 
             data = response.json()
 
-            # Never proxy 401/403 upstream to the frontend, because the
-            # global auth interceptor treats ANY 401 as "not authenticated"
-            # and redirects the user to /login.
             status = 200 if response.status_code < 400 else 500
 
             return make_response({
