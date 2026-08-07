@@ -87,6 +87,56 @@ class CommentByIDResource(Resource):
 
         return make_response({"status": 404, "message": "Comment not found"}, 404)
 
+    # POST /comments/<int:comment_id> - Protected: Reply/comment on an existing comment
+    @jwt_required()
+    def post(self, comment_id):
+        try:
+            current_user_id = int(get_jwt_identity())
+            parent_comment = Comment.query.filter_by(comment_id=comment_id).first()
+
+            if not parent_comment:
+                return make_response({"status": 404, "message": "Parent comment not found"}, 404)
+
+            data = request.get_json() or {}
+            data["user_id"] = current_user_id
+            data["article_id"] = parent_comment.article_id
+            data["parent_id"] = comment_id
+
+            validated_data = comment_schema.load(data)
+
+            raw_content = validated_data.get("content", "")
+            clean_content = bleach.clean(raw_content, strip=True) if raw_content else raw_content
+
+            new_reply = Comment(
+                content=clean_content,
+                article_id=parent_comment.article_id,
+                user_id=current_user_id,
+                parent_id=comment_id,
+            )
+
+            db.session.add(new_reply)
+            db.session.commit()
+
+            return make_response(comment_schema.dump(new_reply), 201)
+
+        except ValidationError as err:
+            log.error("validation_error: %s", err.messages)
+            return make_response({
+                "status": 400,
+                "message": "Validation error(s) occurred",
+                "errors": {**err.messages}
+            }, 400)
+
+        except IntegrityError as ie:
+            db.session.rollback()
+            log.error("integrity_error: %s", str(ie))
+            return make_response({"status": 409, "message": "Database constraint error"}, 409)
+
+        except Exception as e:
+            db.session.rollback()
+            log.error("unexpected_error: %s", str(e))
+            return make_response({"status": 500, "message": "An error occurred"}, 500)
+
     # PATCH /comments/<int:comment_id> - Protected: Edit comment content (Owner only)
     @jwt_required()
     def patch(self, comment_id):
@@ -96,7 +146,6 @@ class CommentByIDResource(Resource):
         if not comment:
             return make_response({"status": 404, "message": "Comment not found"}, 404)
 
-        # Ensure ownership
         if comment.user_id != current_user_id:
             return make_response(
                 {"status": 403, "message": "Permission denied: You can only edit your own comments"}, 403
@@ -106,7 +155,6 @@ class CommentByIDResource(Resource):
             data = request.get_json() or {}
             validated_data = comment_schema.load(data, partial=True)
 
-            # Update content
             if "content" in validated_data:
                 raw_content = validated_data["content"]
                 comment.content = bleach.clean(raw_content, strip=True) if raw_content else raw_content
@@ -139,7 +187,6 @@ class CommentByIDResource(Resource):
         if not comment:
             return make_response({"status": 404, "message": "Comment not found"}, 404)
 
-        # Allow deletion if the user is either the original author OR an Admin
         if comment.user_id != current_user_id and user_role != "admin":
             return make_response(
                 {"status": 403, "message": "Permission denied: You can only delete your own comments"}, 403

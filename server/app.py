@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request, g
 from flask_restful import Api
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from server.resources.comments import CommentByIDResource, CommentsResource
 import structlog
 import sys
 
@@ -63,12 +64,9 @@ def create_app():
     env_db_url = os.getenv("DATABASE_URL")
     if env_db_url:
         env_db_url = env_db_url.strip('"\' ')
-        # If a relative sqlite path is provided (e.g., sqlite:///instance/app.db or sqlite:///app.db),
-        # normalize it to absolute paths based on the project layout to prevent path drift bugs.
         if env_db_url.startswith("sqlite:///"):
             db_path_part = env_db_url.replace("sqlite:///", "", 1)
             if not os.path.isabs(db_path_part):
-                # If path contains instance folder reference or relative file name
                 if db_path_part.startswith("instance/"):
                     db_filename = os.path.basename(db_path_part)
                 else:
@@ -171,8 +169,6 @@ def create_app():
         return jsonify({"error": "Internal server error"}), 500
 
     # INITIALIZE CORS GLOBALLY
-  # INITIALIZE CORS GLOBALLY (allowing all vercel preview domains dynamically)
-  # INITIALIZE CORS GLOBALLY
     cors.init_app(
         app,
         supports_credentials=True,
@@ -182,10 +178,10 @@ def create_app():
             "https://the-terrace-group-project-ruddy.vercel.app",
             "https://the-terrace-group-project.onrender.com",
         ],
-        # Allow any Vercel preview deployment URL dynamically
         send_wildcard=False,
         always_send=True,
     )
+
     @app.after_request
     def add_cors_headers(response):
         origin = request.headers.get("Origin")
@@ -269,7 +265,7 @@ def register_routes(api):
     from resources.sync import AdminSyncMatchesResource 
     from resources.bookmarks import ArticleBookmarkResource, UserBookmarksResource  
     from resources.external_articles import ImportExternalArticleResource, AdminSeedExternalArticlesResource
-    
+
     api.add_resource(RegisterResource, "/auth/register")
     api.add_resource(LoginResource, "/auth/login")
     api.add_resource(LogoutResource, "/auth/logout")
@@ -299,7 +295,11 @@ def register_routes(api):
     api.add_resource(ArticleUpvoteResource, "/articles/<int:article_id>/upvote")
     api.add_resource(ArticleCommentsResource, "/articles/<int:article_id>/comments")
 
-    #Bookmarks
+    # Comments
+    api.add_resource(CommentsResource, "/comments")
+    api.add_resource(CommentByIDResource, "/comments/<int:comment_id>")
+
+    # Bookmarks
     api.add_resource(ArticleBookmarkResource, "/articles/<int:article_id>/bookmark")
     api.add_resource(UserBookmarksResource, "/users/<int:user_id>/bookmarks")
 
@@ -336,6 +336,7 @@ def register_routes(api):
     # External Articles
     api.add_resource(ImportExternalArticleResource, "/articles/import-external")
     api.add_resource(AdminSeedExternalArticlesResource, "/admin/seed-external-articles")
+
 app = create_app()
 
 if __name__ == "__main__":
