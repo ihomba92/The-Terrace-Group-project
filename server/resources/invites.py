@@ -23,8 +23,8 @@ class AdminInvitesResource(Resource):
             data = request.get_json() or {}
             validated = invite_schema.load(data, partial=True)
 
-            expires_in_days = data.get("expires_in_days", 7)
-
+            expires_in_days = validated.get("expires_in_days", 7)
+            
             invite = Invite(
                 role=validated["role"],
                 email=validated.get("email"),
