@@ -83,6 +83,7 @@ export default function CommentSection({ articleId, initialUpvotes = 0, onUpvote
     api
       .post(`/articles/${articleId}/comments`, {
         content: commentText,
+        body: commentText,
       })
       .then((res) => {
         setCommentsList((prev) =>
