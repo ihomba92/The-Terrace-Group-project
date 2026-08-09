@@ -20,10 +20,6 @@ const baseItems = [
   { key: "profile", label: "Profile", to: "/user-profile", Icon: IconUser },
 ];
 
-// Role → the one extra nav item that role gets, inserted just before Profile.
-// Deliberately exclusive: admin gets the admin link, author gets the author
-// dashboard, plain "user" gets neither — matches how Admin.jsx already
-// gates page access, so nav visibility and page access agree with each other.
 const ROLE_NAV_ITEM = {
   admin: { key: "admin", label: "Admin", to: "/admin-dashboard", Icon: IconShield },
   author: { key: "my-articles", label: "My Articles", to: "/my-articles", Icon: IconEdit },
@@ -33,7 +29,6 @@ function buildItems(role) {
   const extra = ROLE_NAV_ITEM[role];
   if (!extra) return baseItems;
 
-  // Insert right before "profile" so account-related items stay grouped together
   const profileIndex = baseItems.findIndex((i) => i.key === "profile");
   return [
     ...baseItems.slice(0, profileIndex),
@@ -44,10 +39,10 @@ function buildItems(role) {
 
 export default function BottomNav({ active }) {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const userRole = user?.profile?.role || user?.role;
 
   const items = buildItems(userRole);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -71,7 +66,6 @@ export default function BottomNav({ active }) {
                     ? "text-night-pitch dark:text-floodlight"
                     : "text-terracing/60 dark:text-floodlight/50 hover:text-night-pitch dark:hover:text-floodlight")
                 }>
-                {/* "you are here" dot — same accent Scoreboard uses for live state */}
                 {isActive && (
                   <span className="absolute top-1.5 w-1 h-1 rounded-full bg-amber-live" aria-hidden="true" />
                 )}
@@ -83,11 +77,15 @@ export default function BottomNav({ active }) {
             );
           })}
         </div>
-        <button
-          onClick={handleLogout}
-          className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] uppercase tracking-[0.08em] text-red-500/70 hover:text-red-500 px-2 py-1">
-          Log out
-        </button>
+
+        {/* Show Mobile Log out button ONLY if user is logged in */}
+        {user && (
+          <button
+            onClick={handleLogout}
+            className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] uppercase tracking-[0.08em] text-red-500/70 hover:text-red-500 px-2 py-1">
+            Log out
+          </button>
+        )}
       </nav>
 
       {/* Desktop sidebar navigation */}
@@ -118,13 +116,17 @@ export default function BottomNav({ active }) {
             );
           })}
         </div>
-        <button
-          onClick={handleLogout}
-          className="mt-auto flex items-center gap-3 px-4 py-3 rounded-card text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-colors duration-100">
-          <span className="font-display font-semibold uppercase tracking-wide text-sm">
-            Log Out
-          </span>
-        </button>
+
+        {/* Show Desktop Log out button ONLY if user is logged in */}
+        {user && (
+          <button
+            onClick={handleLogout}
+            className="mt-auto flex items-center gap-3 px-4 py-3 rounded-card text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-colors duration-100">
+            <span className="font-display font-semibold uppercase tracking-wide text-sm">
+              Log Out
+            </span>
+          </button>
+        )}
       </nav>
     </>
   );

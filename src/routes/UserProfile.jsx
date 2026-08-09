@@ -11,7 +11,7 @@ const EMPTY_PROFILE = {
   name: "",
   handle: "",
   bio: "",
-  avatar: "",
+  avatar: "https://placehold.co/150",
   stats: { followers: 0 },
 };
 
@@ -22,8 +22,8 @@ const normalizeUser = (raw, fallback) => {
     ...raw,
     name: `${raw.first_name || ""} ${raw.last_name || ""}`.trim() || raw.username || fallback.name,
     handle: raw.username || fallback.handle || "",
-    bio: raw.profile?.bio ?? fallback.bio,
-    avatar: raw.profile?.profile_pic ?? fallback.avatar,
+    bio: raw.profile?.bio ?? raw.bio ?? fallback.bio,
+    avatar: raw.profile?.profile_pic || raw.profile_pic || raw.avatar || fallback.avatar,
   };
 };
 
@@ -70,7 +70,7 @@ export default function Profile() {
       .catch((err) => {
         if (!cancelled) {
           console.error("Failed to fetch user:", err);
-          setUserData(storedUser || EMPTY_PROFILE);
+          setUserData(normalizeUser(storedUser, EMPTY_PROFILE));
           setLoading(false);
         }
       });
@@ -138,11 +138,6 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
   if (loading) {
     return (
       <Screen sidebar nav>
@@ -175,7 +170,7 @@ export default function Profile() {
         title="Profile"
         right={
           <Link
-             to="/create-article"
+            to="/create-article"
             className="text-night-pitch dark:text-floodlight block"
             aria-label="Post"
           >
@@ -188,9 +183,13 @@ export default function Profile() {
         <div className="px-4 pt-6 flex items-start gap-4">
           <div className="relative w-16 h-16 rounded-full overflow-hidden bg-terracing/30 border border-black/10 dark:border-white/10 flex-shrink-0">
             <img
-              src={avatarPreview || displayUser.avatar || "/images/avatar.png"}
-              alt=""
+              src={avatarPreview || displayUser.avatar || "https://placehold.co/150"}
+              alt="Profile Avatar"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://placehold.co/150";
+              }}
             />
             <label
               htmlFor="avatar-upload"
@@ -277,13 +276,6 @@ export default function Profile() {
                 </button>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="mt-2 w-full py-2.5 rounded-card border border-red-500/30 text-red-500 font-display font-semibold uppercase tracking-wide text-sm hover:bg-red-500/5 transition-colors duration-100"
-            >
-              Log Out
-            </button>
           </div>
         </div>
 
