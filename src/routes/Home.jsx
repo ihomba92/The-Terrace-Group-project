@@ -12,30 +12,30 @@ import { mapArticle } from "../api/mappers";
 
 // Scoreboard-style scrolling ticker — the page's signature element
 
-function TickerTape({ items }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div className="relative overflow-hidden bg-night-pitch border-y border-amber-live/30">
-      <div className="flex whitespace-nowrap animate-[ticker_28s_linear_infinite] hover:[animation-play-state:paused]">
-        {[...items, ...items].map((t, i) => (
-          <span
-            key={i}
-            className="font-mono text-[11px] tracking-[0.12em] uppercase text-amber-live px-6 py-2 shrink-0"
-          >
-            <span className="text-red-600 mr-2">●</span>
-            {t}
-          </span>
-        ))}
-      </div>
-      <style>{`
-        @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @media (prefers-reduced-motion: reduce) {
-          .animate-\\[ticker_28s_linear_infinite\\] { animation: none; }
-        }
-      `}</style>
-    </div>
-  );
-}
+// function TickerTape({ items }) {
+//   if (!items || items.length === 0) return null;
+//   return (
+//     <div className="relative overflow-hidden bg-night-pitch border-y border-amber-live/30">
+//       <div className="flex whitespace-nowrap animate-[ticker_28s_linear_infinite] hover:[animation-play-state:paused]">
+//         {[...items, ...items].map((t, i) => (
+//           <span
+//             key={i}
+//             className="font-mono text-[11px] tracking-[0.12em] uppercase text-amber-live px-6 py-2 shrink-0"
+//           >
+//             <span className="text-red-600 mr-2">●</span>
+//             {t}
+//           </span>
+//         ))}
+//       </div>
+//       <style>{`
+//         @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+//         @media (prefers-reduced-motion: reduce) {
+//           .animate-\\[ticker_28s_linear_infinite\\] { animation: none; }
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ALL");
