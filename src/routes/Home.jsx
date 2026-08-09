@@ -111,7 +111,7 @@ export default function Home() {
     <Screen sidebar nav>
       <Header title="The Terrace" />
 
-      <TickerTape items={tickerHeadlines} />
+      {/* <TickerTape items={tickerHeadlines} /> */}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full bg-[#F5F3EC] dark:bg-[#0B1F17]">
         {/* Category Filter Pills — styled like matchday squad-number tabs */}
