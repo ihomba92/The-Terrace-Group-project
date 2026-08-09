@@ -8,7 +8,9 @@ export const mapArticle = (a) => ({
   upvotes: a.likes_count ?? a.upvotes ?? 0,
   comments: a.comments?.length ?? a.comments ?? 0,
   image: a.cover_image || a.image || "/placeholder.svg",
-  author: a.author || "External Source",
+  author: a.author?.username || a.author || "External Source",
+  authorId: a.author?.id,
+  category: a.category?.category_name,
   time: a.time || "Recently",
 });
 
