@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import request, make_response, jsonify
 from flask_restful import Resource
 from flask_jwt_extended import (
@@ -10,7 +11,7 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from models import db, User, Profile, TokenBlocklist
+from models import db, User, Profile, TokenBlocklist, Invite
 from schemas import user_schema, login_schema, register_schema
 
 
@@ -36,6 +37,28 @@ class RegisterResource(Resource):
                     {"status": 400, "message": "Email already registered"}, 400
                 )
 
+            # Resolve role purely from a valid invite — never trust a
+            # client-supplied "role" field directly (RegisterSchema still
+            # accepts one for other reasons, but it's intentionally unused
+            # here; only invite_code can elevate a new account above "user").
+            assigned_role = "user"
+            invite = None
+            invite_code = validated_data.get("invite_code")
+            if invite_code:
+                invite = db.session.execute(
+                    db.select(Invite).filter_by(code=invite_code)
+                ).scalar_one_or_none()
+
+                if not invite or not invite.is_valid:
+                    return make_response(
+                        {"status": 400, "message": "Invalid or expired invite code"}, 400
+                    )
+                if invite.email and invite.email.lower() != validated_data["email"].lower():
+                    return make_response(
+                        {"status": 400, "message": "This invite is tied to a different email address"}, 400
+                    )
+                assigned_role = invite.role
+
             user = User(
                 first_name=validated_data["first_name"],
                 last_name=validated_data["last_name"],
@@ -47,7 +70,6 @@ class RegisterResource(Resource):
             db.session.add(user)
             db.session.flush()
 
-            assigned_role = "user"
             profile = Profile(
                 user_id=user.user_id,
                 role=assigned_role,
@@ -55,6 +77,11 @@ class RegisterResource(Resource):
                 gender="Not Specified",
             )
             db.session.add(profile)
+
+            if invite:
+                invite.used_by_id = user.user_id
+                invite.used_at = datetime.utcnow()
+
             db.session.commit()
 
             additional_claims = {"role": assigned_role}
@@ -174,14 +201,14 @@ class MeResource(Resource):
             current_user_id = get_jwt_identity()
             # Ensure it's converted cleanly to an int
             user_id = int(current_user_id)
-            
+
             user = db.session.get(User, user_id)
 
             if not user:
                 return make_response({"status": 404, "message": "User not found"}, 404)
 
             return make_response(user_schema.dump(user), 200)
-            
+
         except Exception as e:
             db.session.rollback()
             return make_response({"status": 500, "message": f"Server error: {str(e)}"}, 500)

@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime
 from flask_bcrypt import Bcrypt
 
@@ -51,6 +52,17 @@ class User(db.Model):
     )
     predictions = db.relationship(
         "Prediction", back_populates="user", cascade="all, delete-orphan"
+    )
+    invites_created = db.relationship(
+        "Invite",
+        foreign_keys="Invite.created_by_id",
+        back_populates="created_by",
+    )
+    invites_used = db.relationship(
+        "Invite",
+        foreign_keys="Invite.used_by_id",
+        back_populates="used_by",
+        uselist=False,
     )
 
     # PASSWORD HASHING METHODS
@@ -316,3 +328,36 @@ class Prediction(db.Model):
         db.Index("idx_predictions_user_id", "user_id"),
         db.Index("idx_predictions_match_id", "match_id"),
     )
+
+
+class Invite(db.Model):
+    __tablename__ = "invites"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(
+        db.String(32), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(16)
+    )
+    role = db.Column(db.Enum("admin", "author", name="invite_role"), nullable=False)
+    email = db.Column(db.String(100), nullable=True)  # optional: lock the invite to one address
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    used_by_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    used_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    created_by = db.relationship(
+        "User", foreign_keys=[created_by_id], back_populates="invites_created"
+    )
+    used_by = db.relationship(
+        "User", foreign_keys=[used_by_id], back_populates="invites_used"
+    )
+
+    __table_args__ = (
+        db.Index("idx_invites_created_by_id", "created_by_id"),
+        db.Index("idx_invites_used_by_id", "used_by_id"),
+        db.Index("idx_invites_code", "code"),
+    )
+
+    @property
+    def is_valid(self):
+        return self.used_by_id is None and self.expires_at > datetime.utcnow()
