@@ -19,6 +19,10 @@ class RegisterSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
     role = fields.Str(dump_default="user")
+    # Optional — if a valid invite code is supplied, RegisterResource assigns
+    # the role from the invite instead of defaulting to "user". This field
+    # itself carries no elevated trust; the schema just accepts the string.
+    invite_code = fields.Str(required=False, allow_none=True)
 
     @validates_schema
     def validate_register(self, data, **kwargs):
@@ -183,6 +187,8 @@ class ArticleSchema(Schema):
 
 article_schema = ArticleSchema()
 articles_schema = ArticleSchema(many=True)
+
+
 # 5. REACTION SCHEMAS
 
 
@@ -332,3 +338,30 @@ class PredictionSchema(Schema):
 
 prediction_schema = PredictionSchema()
 predictions_schema = PredictionSchema(many=True)
+
+
+# 9. INVITE SCHEMAS
+
+
+class InviteSchema(Schema):
+    id = fields.Int(dump_only=True)
+    code = fields.Str(dump_only=True)
+    role = fields.Str(required=True)
+    email = fields.Email(allow_none=True)
+    created_by_id = fields.Int(dump_only=True)
+    used_by_id = fields.Int(dump_only=True, allow_none=True)
+    used_at = fields.DateTime(dump_only=True, allow_none=True)
+    expires_at = fields.DateTime(dump_only=True)
+    created_at = fields.DateTime(dump_only=True)
+
+    created_by = fields.Nested(UserSchema, only=("id", "username"), dump_only=True)
+    used_by = fields.Nested(UserSchema, only=("id", "username"), dump_only=True)
+
+    @validates_schema
+    def validate_role(self, data, **kwargs):
+        if "role" in data and data["role"] not in ["admin", "author"]:
+            raise ValidationError({"role": ["Role must be admin or author"]})
+
+
+invite_schema = InviteSchema()
+invites_schema = InviteSchema(many=True)

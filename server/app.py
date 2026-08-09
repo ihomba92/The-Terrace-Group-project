@@ -7,7 +7,6 @@ from flask import Flask, jsonify, request, g
 from flask_restful import Api
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from server.resources.comments import CommentByIDResource, CommentsResource
 import structlog
 import sys
 
@@ -265,6 +264,9 @@ def register_routes(api):
     from resources.sync import AdminSyncMatchesResource 
     from resources.bookmarks import ArticleBookmarkResource, UserBookmarksResource  
     from resources.external_articles import ImportExternalArticleResource, AdminSeedExternalArticlesResource
+    from resources.invites import AdminInvitesResource, AdminInviteByIDResource
+    from resources.comments import CommentByIDResource, CommentsResource
+
 
     api.add_resource(RegisterResource, "/auth/register")
     api.add_resource(LoginResource, "/auth/login")
@@ -336,6 +338,10 @@ def register_routes(api):
     # External Articles
     api.add_resource(ImportExternalArticleResource, "/articles/import-external")
     api.add_resource(AdminSeedExternalArticlesResource, "/admin/seed-external-articles")
+
+    # Invites
+    api.add_resource(AdminInvitesResource, "/admin/invites")
+    api.add_resource(AdminInviteByIDResource, "/admin/invites/<int:invite_id>")
 
 app = create_app()
 
