@@ -20,6 +20,23 @@ async function rejectArticle(id, reason) {
   return api.patch(`/admin/articles/${id}/reject`, { reason });
 }
 
+// Matches AdminInvitesResource / AdminInviteByIDResource
+async function fetchInvites() {
+  return api.get("/admin/invites");
+}
+async function createInvite(payload) {
+  return api.post("/admin/invites", payload);
+}
+async function revokeInvite(id) {
+  return api.delete(`/admin/invites/${id}`);
+}
+
+function inviteStatus(invite) {
+  if (invite.used_by_id) return "used";
+  if (new Date(invite.expires_at) <= new Date()) return "expired";
+  return "active";
+}
+
 export default function Admin() {
   const { user } = useAuth();
   const userRole = user?.profile?.role || user?.role;
@@ -27,14 +44,20 @@ export default function Admin() {
 
   const [allArticles, setAllArticles] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Tracks per-row in-flight action so only that row's buttons disable,
-  // and lets us show which action is running (approve vs reject).
   const [pendingAction, setPendingAction] = useState({}); // { [articleId]: "approve" | "reject" }
   const [actionError, setActionError] = useState(null);
 
-  // Which row currently has the reject-reason input open, and its draft text
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // --- Invites state ---
+  const [invites, setInvites] = useState([]);
+  const [invitesLoading, setInvitesLoading] = useState(true);
+  const [inviteForm, setInviteForm] = useState({ role: "author", email: "", expires_in_days: 7 });
+  const [creatingInvite, setCreatingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
+  const [revokingId, setRevokingId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -43,10 +66,6 @@ export default function Admin() {
     }
 
     let cancelled = false;
-    // status=all is admin-only — ArticlesResource enforces that server-side
-    // via the JWT role claim, this isn't a client-side-only restriction.
-    // per_page bumped up so the moderation queue isn't silently truncated
-    // by the endpoint's default page size of 10.
     api
       .get("/articles?status=all&per_page=100")
       .then((res) => {
@@ -68,8 +87,32 @@ export default function Admin() {
     };
   }, [isAdmin]);
 
-  // Everything below is derived from allArticles, so approving/rejecting
-  // one article automatically keeps the queue and the metrics in sync.
+  useEffect(() => {
+    if (!isAdmin) {
+      setInvitesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    fetchInvites()
+      .then((res) => {
+        if (!cancelled) {
+          setInvites(Array.isArray(res.data) ? res.data : []);
+          setInvitesLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to fetch invites:", err);
+          setInvites([]);
+          setInvitesLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
+
   const queue = useMemo(
     () => allArticles.filter((a) => a[STATUS_FIELD] === "PENDING"),
     [allArticles]
@@ -148,6 +191,51 @@ export default function Admin() {
         delete next[article.id];
         return next;
       });
+    }
+  };
+
+  const handleCreateInvite = async (e) => {
+    e.preventDefault();
+    setInviteError(null);
+    setCreatingInvite(true);
+
+    try {
+      const res = await createInvite({
+        role: inviteForm.role,
+        email: inviteForm.email.trim() || undefined,
+        expires_in_days: Number(inviteForm.expires_in_days) || 7,
+      });
+      setInvites((prev) => [res.data, ...prev]);
+      setInviteForm({ role: "author", email: "", expires_in_days: 7 });
+    } catch (err) {
+      console.error("Failed to create invite:", err);
+      setInviteError(err.response?.data?.errors || err.response?.data?.message || "Couldn't create invite.");
+    } finally {
+      setCreatingInvite(false);
+    }
+  };
+
+  const handleRevokeInvite = async (invite) => {
+    setRevokingId(invite.id);
+    try {
+      await revokeInvite(invite.id);
+      setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+    } catch (err) {
+      console.error("Failed to revoke invite:", err);
+      setInviteError(err.response?.data?.message || "Couldn't revoke invite.");
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleCopyLink = async (invite) => {
+    const link = `${window.location.origin}/create-account?invite=${invite.code}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedId(invite.id);
+      setTimeout(() => setCopiedId((id) => (id === invite.id ? null : id)), 2000);
+    } catch (err) {
+      console.error("Clipboard write failed:", err);
     }
   };
 
@@ -290,7 +378,6 @@ export default function Admin() {
                     )}
                   </div>
 
-                  {/* Inline reason capture — replaces the buttons for this row only */}
                   {isRejecting && (
                     <div className="mt-3 pl-0">
                       <label
@@ -342,6 +429,143 @@ export default function Admin() {
                 Queue is empty.
               </li>
             )}
+          </ul>
+        )}
+
+        {/* Invites section */}
+        <h2 className="px-4 mt-10 mb-2 font-display font-bold uppercase text-lg tracking-wide text-night-pitch dark:text-floodlight">
+          Invites
+        </h2>
+
+        <form
+          onSubmit={handleCreateInvite}
+          className="mx-4 mt-3 p-4 border border-black/10 dark:border-white/10 rounded-card flex flex-col sm:flex-row gap-3 sm:items-end"
+        >
+          <label className="flex-1 min-w-[120px]">
+            <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-terracing/60 dark:text-floodlight/50 mb-1.5">
+              Role
+            </span>
+            <select
+              value={inviteForm.role}
+              onChange={(e) => setInviteForm((f) => ({ ...f, role: e.target.value }))}
+              className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card px-3 py-2 text-sm text-night-pitch dark:text-floodlight focus:outline-none focus:border-black/50 dark:focus:border-white/50"
+            >
+              <option value="author" className="bg-floodlight dark:bg-night-pitch">Author</option>
+              <option value="admin" className="bg-floodlight dark:bg-night-pitch">Admin</option>
+            </select>
+          </label>
+
+          <label className="flex-[2] min-w-[160px]">
+            <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-terracing/60 dark:text-floodlight/50 mb-1.5">
+              Email (optional — locks the invite to one address)
+            </span>
+            <input
+              type="email"
+              value={inviteForm.email}
+              onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="name@example.com"
+              className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card px-3 py-2 text-sm text-night-pitch dark:text-floodlight placeholder:text-terracing/40 dark:placeholder:text-floodlight/40 focus:outline-none focus:border-black/50 dark:focus:border-white/50"
+            />
+          </label>
+
+          <label className="w-full sm:w-28">
+            <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-terracing/60 dark:text-floodlight/50 mb-1.5">
+              Expires (days)
+            </span>
+            <input
+              type="number"
+              min="1"
+              value={inviteForm.expires_in_days}
+              onChange={(e) => setInviteForm((f) => ({ ...f, expires_in_days: e.target.value }))}
+              className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card px-3 py-2 text-sm text-night-pitch dark:text-floodlight focus:outline-none focus:border-black/50 dark:focus:border-white/50"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={creatingInvite}
+            className="px-4 py-2 rounded-card bg-night-pitch text-floodlight dark:bg-floodlight dark:text-night-pitch font-mono text-[11px] uppercase tracking-[0.08em]
+            hover:opacity-90 transition-opacity duration-100 active:translate-y-[2px]
+            disabled:pointer-events-none disabled:opacity-60 shrink-0"
+          >
+            {creatingInvite ? "Generating..." : "Generate Invite"}
+          </button>
+        </form>
+
+        {inviteError && (
+          <div className="mx-4 mt-3 px-3 py-2 rounded-card border border-red-500/30 bg-red-500/5 font-mono text-xs text-red-500">
+            {typeof inviteError === "string" ? inviteError : JSON.stringify(inviteError)}
+          </div>
+        )}
+
+        {invitesLoading ? (
+          <div className="py-8 mt-3 text-center font-mono text-sm text-terracing/60 dark:text-floodlight/50 border border-black/10 dark:border-white/10">
+            Loading invites...
+          </div>
+        ) : invites.length === 0 ? (
+          <div className="mx-4 mt-3 py-8 text-center font-mono text-sm text-terracing/60 dark:text-floodlight/50 border border-black/10 dark:border-white/10 rounded-card">
+            No invites yet.
+          </div>
+        ) : (
+          <ul className="border-t border-black/10 dark:border-white/10 mt-3">
+            {invites.map((invite) => {
+              const status = inviteStatus(invite);
+              const statusMeta = {
+                active: { label: "Active", className: "text-amber-live" },
+                used: { label: `Used by ${invite.used_by?.username || "—"}`, className: "text-terracing/60 dark:text-floodlight/50" },
+                expired: { label: "Expired", className: "text-red-500" },
+              }[status];
+
+              return (
+                <li
+                  key={invite.id}
+                  className="px-4 py-4 border-b border-black/10 dark:border-white/10 flex items-start justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-night-pitch dark:text-floodlight">
+                        {invite.code}
+                      </span>
+                      <span className="font-mono text-[10px] uppercase tracking-[0.08em] px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 text-terracing/70 dark:text-floodlight/60">
+                        {invite.role}
+                      </span>
+                    </div>
+                    {invite.email && (
+                      <p className="font-mono text-[11px] text-terracing/60 dark:text-floodlight/50 mt-1">
+                        {invite.email}
+                      </p>
+                    )}
+                    <p className={`font-mono text-[10px] uppercase tracking-[0.08em] mt-1 ${statusMeta.className}`}>
+                      {statusMeta.label}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 shrink-0 items-end">
+                    {status === "active" && (
+                      <button
+                        onClick={() => handleCopyLink(invite)}
+                        className="px-2 py-1 border border-black/10 dark:border-white/10 rounded-card font-mono text-[10px] uppercase tracking-[0.08em]
+                        text-terracing/70 dark:text-floodlight/60 hover:text-night-pitch dark:hover:text-floodlight
+                        transition-colors duration-100 active:translate-y-[2px]"
+                      >
+                        {copiedId === invite.id ? "Copied!" : "Copy link"}
+                      </button>
+                    )}
+                    {status === "active" && (
+                      <button
+                        disabled={revokingId === invite.id}
+                        onClick={() => handleRevokeInvite(invite)}
+                        className="px-2 py-1 border border-red-500/20 rounded-card font-mono text-[10px] uppercase tracking-[0.08em] text-red-500/70
+                        hover:bg-red-500 hover:text-white transition-colors duration-100 active:translate-y-[2px]
+                        disabled:pointer-events-none disabled:opacity-60"
+                      >
+                        {revokingId === invite.id ? "Revoking..." : "Revoke"}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </main>

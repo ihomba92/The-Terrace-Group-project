@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthShell } from "../components/AuthShell";
 import { Field, Button } from "../components/UI";
 import api from "../api/client";
@@ -18,10 +18,15 @@ const INITIAL_FORM = {
 export default function CreateAccount() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+
   const [form, setForm] = useState(INITIAL_FORM);
+  // Pre-fill from ?invite=CODE if an admin shared a link rather than a bare code
+  const [inviteCode, setInviteCode] = useState(searchParams.get("invite") || "");
   const [showPassword, setShowPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const update = (key, value) => setForm({ ...form, [key]: value });
 
@@ -38,14 +43,22 @@ export default function CreateAccount() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSubmitting(true);
     try {
-      const res = await api.post("/auth/register", {
+      const payload = {
         first_name: form.firstName,
         last_name: form.lastName,
         username: form.username,
         email: form.email,
         password: form.password,
-      });
+      };
+
+      const trimmedCode = inviteCode.trim();
+      if (trimmedCode) {
+        payload.invite_code = trimmedCode;
+      }
+
+      const res = await api.post("/auth/register", payload);
 
       localStorage.setItem("token", res.data.access_token || res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -58,6 +71,8 @@ export default function CreateAccount() {
         : err.response?.data?.message;
 
       setError(serverError || "Registration failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -185,12 +200,28 @@ export default function CreateAccount() {
           />
         </label>
 
+        {/* Optional — only changes anything if a valid, unused invite exists */}
+        <label className="block">
+          <span className="block font-mono text-[11px] uppercase tracking-[0.1em] text-terracing/70 dark:text-floodlight/50 mb-1.5">
+            Invite Code <span className="normal-case tracking-normal text-terracing/50 dark:text-floodlight/40">(optional — for admin/author accounts)</span>
+          </span>
+          <input
+            type="text"
+            placeholder="Leave blank for a regular account"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            className="w-full bg-transparent border border-black/10 dark:border-white/10 rounded-card px-3 py-2.5 text-sm text-night-pitch dark:text-floodlight placeholder:text-terracing/40 dark:placeholder:text-floodlight/40 focus:outline-none focus:border-black/50 dark:focus:border-white/50"
+          />
+        </label>
+
         {error && (
           <p className="text-sm font-mono text-center text-red-600 dark:text-red-400">
             {error}
           </p>
         )}
-        <Button type="submit">Create Account</Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Creating..." : "Create Account"}
+        </Button>
       </form>
     </AuthShell>
       </div>
